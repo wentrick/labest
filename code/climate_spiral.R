@@ -81,6 +81,6 @@ ggplot(temp_data_final,aes(x = month_number, y = t_diff, group = year, color = y
     plot.title = element_text(color = "white",hjust = 0.5, size = 15),
   )
 
-ggsave("figures/temperature_lines.pdf", width = 8, height = 4.5)
+ggsave("figures/climate_spiral.pdf", width = 8, height = 4.5)
 
 
