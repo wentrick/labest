@@ -1,4 +1,4 @@
-pacman::p_load(tidyverse,vroom,gganimate, av)
+pacman::p_load(tidyverse,vroom,gganimate, av, gifski)
 
 
 t_diff <- vroom("data/GLB.Ts+dSST.csv", skip = 1, na = "***") %>%
