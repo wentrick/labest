@@ -10,7 +10,7 @@ bacias <- readxl::read_excel("~/R Documents/R Data/81bacias.xlsx") %>%
 # colocando ordem nas bacias
 join <- left_join(data, bacias, by = c("bacia" = "Estação"))
 
-## complemento de dados
+## complemento de dados (fechar o buraco)
 next_pluv <- join %>%
   filter(ordem == 1) %>%
   mutate(ano = ano - 1,
@@ -36,7 +36,7 @@ bacia <- tibble(
 ##
 nomes <- c(1:81)
 
-##
+## Maximos e Minimos da série inteira
 annotation_max <- dt %>%
 group_by(pluv_number)  %>%
   slice_max(prop) %>%
@@ -46,6 +46,7 @@ annotation_min <- dt %>%
   group_by(pluv_number)  %>%
   slice_min(prop) %>%
   mutate(min = prop)
+
 ##
 pluv_lines <- tibble(
   x = 81,
@@ -53,13 +54,15 @@ pluv_lines <- tibble(
   labels = c("Sem vazão", "1x", "2x", "3x")
 )
 
+
+## Ajustando o banco para o plot dos maximos e minimos na animacao 
 dt = left_join(dt,annotation_max,by = c("ano", "ordem", "pluv_number"))
 
 dt = left_join(dt,annotation_min,by = c("ano", "ordem", "pluv_number"))
 
-# dt <- dt %>% replace(is.na(.), 0)
-
 colnames(dt) = c("ano", "ordem", "prop", "pluv_number","prop_max","max", "prop_min", "min")
+
+#### Gráfico 2D ---- 
 
 dt %>% 
   ggplot(aes(x=pluv_number, y=prop, group=ano, color=ano)) +
@@ -117,7 +120,8 @@ dt %>%
     axis.title = element_text(color="white", size=13),
     plot.title = element_text(color="white", hjust = 0.5,size = 15)
   )
-###
+
+#### Animacao ---- 
 
 dt %>% 
   ggplot(aes(x=pluv_number, y=prop, group=ano, color=ano)) +
@@ -146,7 +150,9 @@ dt %>%
   # geom_text(data = bacia, aes(x=x, y=y, label = labels),
   #           inherit.aes = FALSE, color="white",
   #           angle = seq(360 - 360/81, 0, length.out = 81)) +
-  geom_label(aes(x = 1, y=-1.3, label = ano, color = ano), fill = "transparent", label.size = 0,
+  geom_label(aes(x = 1, y=-1.3, label = ano, color = ano), 
+             fill = "black", 
+             label.size = 0,
              inherit.aes=FALSE)+ #ano ou 2050
   scale_x_continuous(breaks=1:81,
                      labels=nomes, expand = c(0,0),
@@ -189,58 +195,5 @@ animate(anim, width=4.155, height=4.5, unit="in", res=300,fps = 60, duration = 2
 anim_save("vazao_video.mp4", path = "figures/")
 
 
-
-#animacao 
-
-anim <- dt %>% 
-  ggplot(aes(x=ordem, y=prop, group=ano, color=ano)) +
-  geom_rect(aes(xmin=1, xmax=81, ymin=0, ymax=2),
-            color="black", fill="black",
-            inherit.aes = FALSE) +
-  geom_hline(yintercept = c(0, 1, 2), color="red") +
-  geom_label(data = pluv_lines, aes(x=x, y=y, label=labels),
-             color = "red", fill = "black", label.size = 0,
-             inherit.aes=FALSE) +
-  geom_text(data =bacia, aes(x=x, y=y, label = labels),
-            inherit.aes = FALSE, color="white",
-            angle = seq(360 - 360/81, 0, length.out = 81)) +
-  geom_label(aes(x = 1, y=-1.3, label = ano), #ano ou 2050
-             color="white", fill="black",
-             label.padding = unit(50, "pt"), label.size = 0,
-             size=6) +
-  geom_line() +
-  scale_x_continuous(breaks=1:81,
-                     labels=nomes, expand = c(0,0),
-                     sec.axis = dup_axis(name = NULL, labels=NULL)) +
-  scale_y_continuous(breaks = seq(-2, 2, 0.2),
-                     limits = c(-2, 2.7), expand = c(0, -0.7), 
-                     sec.axis = dup_axis(name = NULL, labels=NULL)) +
-  scale_color_viridis_c(breaks = seq(1980, 2050, 10),
-                        guide = "none") +
-  coord_polar(start = 2*pi/81) +
-  labs(x = NULL,
-       y = NULL,
-       title = " Proporção de Vazão (1985-2050)") +
-  theme(
-    panel.background = element_rect(fill="#444444", size=1),
-    plot.background = element_rect(fill = "#444444", color="#444444"),
-    panel.grid = element_blank(),
-    axis.text.x = element_blank(),
-    axis.text.y = element_blank(),
-    axis.title.y = element_blank(),
-    axis.ticks = element_blank(),
-    axis.title = element_text(color="white", size=13),
-    plot.title = element_text(color="white", hjust = 0.5,size = 15)
-  ) +
-  transition_manual(frames = ano, cumulative = TRUE)
-
-animate(anim, width=4.155, height=4.5, unit="in", res=300,fps = 60, duration = 20)
-anim_save("vazao.gif", path = "figures/")
-
-
-animate(anim, width=4.155, height=4.5, unit="in", res=300,fps = 60, duration = 20,
-        renderer = av_renderer("vazao_video.mp4")
-)
-anim_save("vazao_video.mp4", path = "figures/")
 
 
