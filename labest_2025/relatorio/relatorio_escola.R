@@ -14,8 +14,12 @@ df <- left_join(pop_cadastrada, escolas_adesao, by = "IBGE") %>%
   select(-1,-9) %>%
   drop_na()
 
+# df numero de escola por municipio
 
-
+df_escola_municipio = df %>%
+  select(Município) %>%
+  group_by(Município) %>%
+  summarise(freq = n())
 
 
 #### Analise Geral ----
@@ -58,7 +62,7 @@ print(tabela_freq)
 ggplot(tabela_freq, aes(x = `PARTE DO GRUPO PRIORITÁRIO`, y = frequencia, fill = `PARTE DO GRUPO PRIORITÁRIO`)) +
   geom_bar(stat = "identity", width = 0.6) +
   geom_text(aes(label = frequencia), vjust = -0.5) +
-  labs(title = "Faz parte do grupo prioritario?", x = "Região", y = "Quantidade") +
+  labs(title = "Faz parte do grupo prioritario?", x = " ", y = "Quantidade") +
   theme_minimal() +
   theme(legend.position = "none")
 

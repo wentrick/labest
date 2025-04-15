@@ -32,8 +32,8 @@ df_soma <- df %>%
   )
 
 # Gráfico com ordenação do maior para o menor
-ggplot(df_soma, aes(x = fct_reorder(Região, -`Qtd. beneficiários acompanhados`), 
-                    y = `Qtd. beneficiários acompanhados`)) +
+ggplot(df_soma, aes(x = fct_reorder(Região, -percentual), 
+                    y = percentual)) +
   geom_col(fill = "darkorange") +
   geom_text(aes(label = Label), vjust = -0.3, size = 3.5) +
   scale_y_continuous(labels = comma_format(big.mark = ".", decimal.mark = ","), 
@@ -70,7 +70,7 @@ ggplot(df_soma, aes(x = fct_reorder(Região, -`Qtd. criança a ser acompanhada`)
   geom_text(aes(label = Label), vjust = -0.3, size = 3.5) +
   scale_y_continuous(labels = comma_format(big.mark = ".", decimal.mark = ","), 
                      expand = expansion(mult = c(0, 0.1))) +
-  labs(title = "Beneficiários Acompanhados por Região",
+  labs(title = "Beneficiários crianças acompanhados por Região",
        x = "Região",
        y = "Qtd. Beneficiários Acompanhados") +
   theme_minimal() +
@@ -102,7 +102,7 @@ ggplot(df_soma, aes(x = fct_reorder(UF, `Qtd. beneficiários acompanhados`),
   geom_text(aes(label = Label), hjust = -0.05, size = 3.5) +
   scale_y_continuous(labels = comma_format(big.mark = ".", decimal.mark = ","), 
                      expand = expansion(mult = c(0, 0.15))) +
-  labs(title = "Beneficiários Acompanhados por Região",
+  labs(title = "Beneficiários Acompanhados por UF",
        x = "Região",
        y = "Qtd. Beneficiários Acompanhados") +
   coord_flip() +  # <- muda para horizontal
@@ -132,7 +132,7 @@ ggplot(df_soma, aes(x = fct_reorder(UF, `Qtd. criança a ser acompanhada`),
   geom_text(aes(label = Label), hjust = -0.05, size = 3.5) +
   scale_y_continuous(labels = comma_format(big.mark = ".", decimal.mark = ","), 
                      expand = expansion(mult = c(0, 0.15))) +
-  labs(title = "Beneficiários Acompanhados por Região",
+  labs(title = "Beneficiários crianças acompanhados por UF",
        x = "Região",
        y = "Qtd. Beneficiários Acompanhados") +
   coord_flip() +  # <- muda para horizontal
