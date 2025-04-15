@@ -1,4 +1,4 @@
-pacman::p_load(tidyverse,readxl,ggplot2)
+pacman::p_load(tidyverse,readxl,ggplot2,scales)
 
 
 escolas_adesao <- read_excel("labest_2025/data/escolas_adesao_2023_2024.xlsx")
@@ -11,13 +11,14 @@ pop_cadastrada <- read_excel("labest_2025/data/pop_cadastrada_2023.xls",
 
 # Juntando pelo campo "ibge"
 df <- left_join(pop_cadastrada, escolas_adesao, by = "IBGE") %>%
-  select(-1,-9)
+  select(-1,-9) %>%
+  drop_na()
 
 
 
 
 
-#### Analise Regional ----
+#### Analise Geral ----
 
 # Tabela de frequência
 tabela_freq <- df %>%
@@ -108,11 +109,47 @@ ggplot(tabela_freq, aes(x = `PARTICIPA DO SISTEMA NACIONAL DE ACOMPANHAMENTO DE 
 
 ################################################################################
 
-# Somar algumas colunas específicas (ex: var1 e var3)
-resumo <- df %>%
-  summarize(across(
-    c(14:20), 
-    ~sum(.x, na.rm = TRUE), 
-    .names = "soma_{.col}"
-  ))
+
+# Adicionar total e calcular percentual
+df_soma <- df %>%
+  summarize(across(c(14:20), ~sum(.x, na.rm = TRUE))) %>% 
+  pivot_longer(cols = c(1:7), names_to = 'Tipo', values_to = "Quantidade") %>%
+  mutate(
+    Tipo = gsub("^QUANTIDADE ", "", Tipo),
+    Percentual = Quantidade / sum(Quantidade),
+    Label = paste0(format(Quantidade, big.mark = ".", decimal.mark = ","), 
+                   "\n(", percent(Percentual, accuracy = 0.1), ")")
+  )
+
+# Gráfico com rótulos no topo
+ggplot(df_soma, aes(x = fct_reorder(Tipo, -Quantidade), y = Quantidade)) +
+  geom_col(fill = "steelblue") +
+  geom_text(aes(label = Label), vjust = -0.3, size = 3.5) +  # <-- Rótulos acima das barras
+  scale_y_continuous(labels = comma_format(big.mark = ".", decimal.mark = ","), 
+                     expand = expansion(mult = c(0, 0.1))) +  # Expansão para não cortar o texto
+  labs(title = "Quantidade por Tipo",
+       x = "Tipo",
+       y = "Quantidade") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#### Analise Regional ----
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
