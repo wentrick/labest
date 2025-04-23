@@ -1,7 +1,8 @@
 pacman::p_load(tidyverse,readxl,ggplot2,scales)
 
 
-escolas_adesao <- read_excel("labest_2025/data/escolas_adesao_2023_2024.xlsx")
+escolas_adesao <- read_excel("labest_2025/data/escolas_adesao_2023_2024.xlsx") %>%
+  rename(municipio = MUNICÍPIO)
 
 
 pop_cadastrada <- read_excel("labest_2025/data/pop_cadastrada_2023.xls", 
@@ -9,18 +10,43 @@ pop_cadastrada <- read_excel("labest_2025/data/pop_cadastrada_2023.xls",
                                                 "numeric", "text", "numeric", 
                                                 "numeric", "numeric"))
 
+palestras_municipio <- read_excel("labest_2025/data/palestras_municipio_2023.xlsx") %>%
+  select(1,2,3,5,6,14,16,17) %>%
+  mutate(total = `Alimentação saudável`+ `Autocuidado de pessoas com doe`+`Saúde bucal`+`Saúde mental` + `Saúde sexual e reprodutiva`) %>%
+  rename(municipio = Municipio)
+
+
+
 # Juntando pelo campo "ibge"
 df <- left_join(pop_cadastrada, escolas_adesao, by = "IBGE") %>%
   select(-1,-9) %>%
-  drop_na()
+  drop_na() 
 
-# df numero de escola por municipio
-
-df_escola_municipio = df %>%
-  select(Município) %>%
+df_escola_municipio <- df %>%
+  select(Município, `QUANTIDADE EDUCANDOS`) %>%
   group_by(Município) %>%
-  summarise(freq = n())
+  summarise(
+    escolas = n(),
+    educandos = sum(`QUANTIDADE EDUCANDOS`, na.rm = TRUE)
+  ) %>%
+  rename(municipio = Município)
 
+df_escola_municipio <- df_escola_municipio %>%
+  left_join(df %>% select(Município, Região) %>% distinct(), 
+            by = c("municipio" = "Município"))
+
+
+#numero de palestras por numero de escolar no municipio
+
+df_final = left_join(df_escola_municipio,palestras_municipio, by = 'municipio') %>%
+  rename(total_palestras = total,regiao = Região) %>%
+  select(regiao,Uf,municipio,Ibge,escolas,educandos,total_palestras)  %>%
+  mutate(taxa_palestras_escola = total_palestras/escolas,
+         taxa_educandos_palestras = educandos/total_palestras) 
+  
+
+
+#numero de palestras por numero de educandos
 
 #### Analise Geral ----
 
