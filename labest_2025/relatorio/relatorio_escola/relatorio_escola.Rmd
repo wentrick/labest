@@ -1,0 +1,206 @@
+---
+title: "Relatório Indicadores Escolares 2023-2024"
+author: "Grupo 2"
+date: "`r format(Sys.Date(), '%d de %B de %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: yeti
+    highlight: tango
+    code_folding: show
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+pacman::p_load(tidyverse, readxl, ggplot2, scales, kableExtra)
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+# Introdução
+Este relatório apresenta indicadores escolares referentes ao período de 2023-2024, incluindo número de escolas, educandos, palestras e razões derivadas. Analisamos por região e UF, comparando cada unidade à média nacional.
+
+# Dados
+## Leitura
+```{r leitura-dados, echo=TRUE}
+escolas_adesao <- read_excel("escolas_adesao_2023_2024.xlsx") %>% rename(municipio = MUNICÍPIO)
+palestras_municipio <- read_excel("palestras_municipio_2023.xlsx") %>%
+  select(1,2,3,5,6,14,16,17) %>%
+  mutate(total = `Alimentação saudável` + `Autocuidado de pessoas com doe` +
+                `Saúde bucal` + `Saúde mental` + `Saúde sexual e reprodutiva`) %>%
+  rename(municipio = Municipio)
+pop_cadastrada <- read_excel("pop_cadastrada_2023.xls", col_types=c("text","text","text","numeric","text","numeric","numeric","numeric"))
+```
+
+## Tratamento
+```{r preparacao-dados, echo=TRUE}
+df <- left_join(pop_cadastrada, escolas_adesao, by="IBGE") %>% select(-1,-9) %>% drop_na()
+df_escola_municipio <- df %>%
+  group_by(Município) %>%
+  summarise(
+    escolas    = n(),
+    educandos  = sum(`QUANTIDADE EDUCANDOS`, na.rm = TRUE)
+  ) %>% rename(municipio = Município)
+df_escola_municipio <- df_escola_municipio %>%
+  left_join(
+    df %>% select(Município, Região) %>% distinct(),
+    by = c("municipio" = "Município")
+  )
+```
+
+# Indicadores
+```{r calculo-indicadores, echo=TRUE}
+df_final <- left_join(df_escola_municipio, palestras_municipio, by='municipio') %>%
+  rename(total_palestras = total, regiao = Região) %>%
+  select(regiao, Uf, municipio, Ibge, escolas, educandos, total_palestras) %>%
+  mutate(
+    razao_palestras_por_escola   = total_palestras / escolas,
+    razao_educando_palestra      = educandos / total_palestras
+  )
+# médias nacionais para referência
+global_razao_palestras_por_escola <- sum(df_final$total_palestras, na.rm = TRUE) / sum(df_final$escolas, na.rm = TRUE)
+global_razao_educando_palestra  <- sum(df_final$educandos, na.rm = TRUE) / sum(df_final$total_palestras, na.rm = TRUE)
+```
+
+# Resultados
+
+## Razões por Região
+
+### Palestras por Escola
+
+```{r regiao-palestras, echo=TRUE}
+df_regiao_razao_palestras <- df_final %>%
+  drop_na(razao_palestras_por_escola) %>%
+  group_by(regiao) %>%
+  summarise(
+    total_escolas    = sum(escolas, na.rm = TRUE),
+    total_palestras = sum(total_palestras, na.rm = TRUE)
+  ) %>%
+  mutate(razao_palestras_por_escola = total_palestras / total_escolas) %>%
+  arrange(desc(razao_palestras_por_escola))
+
+ggplot(df_regiao_razao_palestras, aes(
+    x = razao_palestras_por_escola,
+    y = reorder(regiao, razao_palestras_por_escola),
+    fill = regiao
+  )) +
+  geom_col() +
+  geom_vline(xintercept = global_razao_palestras_por_escola, linetype = "dashed", size = 0.7) +
+  annotate("text",
+           x = global_razao_palestras_por_escola,
+           y = 0.5,
+           label = paste0("          ", round(global_razao_palestras_por_escola,2)),
+           angle = 0,
+           vjust = 0.5) +
+  geom_text(aes(label = round(razao_palestras_por_escola,2)), hjust = -0.1) +
+  labs(title = "Razão Palestras por Escola por Região", x = "Razão", y = "Região") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2")
+```
+```{r tabela-regiao-palestras, echo=TRUE}
+df_regiao_razao_palestras %>% kable("html") %>% kable_styling()
+```
+
+### Educandos por Palestra
+```{r regiao-educandos, echo=TRUE}
+df_regiao_razao_educandos <- df_final %>%
+  drop_na(razao_educando_palestra) %>%
+  group_by(regiao) %>%
+  summarise(
+    total_educandos = sum(educandos, na.rm = TRUE),
+    total_palestras = sum(total_palestras, na.rm = TRUE)
+  ) %>%
+  mutate(razao_educando_palestra = total_educandos / total_palestras) %>%
+  arrange(desc(razao_educando_palestra))
+
+ggplot(df_regiao_razao_educandos, aes(
+    x = razao_educando_palestra,
+    y = reorder(regiao, razao_educando_palestra),
+    fill = regiao
+  )) +
+  geom_col() +
+  geom_vline(xintercept = global_razao_educando_palestra, linetype = "dashed", size = 0.7) +
+  annotate("text",
+           x = global_razao_educando_palestra,
+           y = 0.5,
+           label = paste0("           ", round(global_razao_educando_palestra,2)),
+           angle = 0,
+           vjust = 0.5) +
+  geom_text(aes(label = round(razao_educando_palestra,2)), hjust = -0.1) +
+  labs(title = "Razão Educandos por Palestra por Região", x = "Razão", y = "Região") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2")
+```
+```{r tabela-regiao-educandos, echo=TRUE}
+df_regiao_razao_educandos %>% kable("html") %>% kable_styling()
+```
+
+## Razões por UF
+### Palestras por Escola
+```{r uf-palestras, fig.width=10, echo=TRUE}
+df_uf_razao_palestras <- df_final %>%
+  drop_na(razao_palestras_por_escola) %>%
+  group_by(Uf) %>%
+  summarise(
+    total_escolas    = sum(escolas, na.rm = TRUE),
+    total_palestras = sum(total_palestras, na.rm = TRUE)
+  ) %>%
+  mutate(razao_palestras_por_escola = total_palestras / total_escolas) %>%
+  arrange(desc(razao_palestras_por_escola))
+
+ggplot(df_uf_razao_palestras, aes(
+    x = razao_palestras_por_escola,
+    y = reorder(Uf, razao_palestras_por_escola)
+  )) +
+  geom_col(fill = "steelblue") +
+  geom_vline(xintercept = global_razao_palestras_por_escola, linetype = "dashed", size = 0.7) +
+  annotate("text",
+           x = global_razao_palestras_por_escola,
+           y = 0.5,
+           label = paste0("           ", round(global_razao_palestras_por_escola,2)),
+           angle = 0,
+           vjust = -0.5) +
+  geom_text(aes(label = round(razao_palestras_por_escola,2)), hjust = -0.1) +
+  labs(title = "Razão Palestras por Escola por UF", x = "Razão", y = "UF") +
+  theme_minimal()
+```
+```{r tabela-uf-palestras, echo=TRUE}
+df_uf_razao_palestras %>% kable("html") %>% kable_styling()
+```
+
+### Educandos por Palestra
+```{r uf-educandos, fig.width=10, echo=TRUE}
+df_uf_razao_educandos <- df_final %>%
+  drop_na(razao_educando_palestra) %>%
+  group_by(Uf) %>%
+  summarise(
+    total_educandos = sum(educandos, na.rm = TRUE),
+    total_palestras = sum(total_palestras, na.rm = TRUE)
+  ) %>%
+  mutate(razao_educando_palestra = total_educandos / total_palestras) %>%
+  arrange(desc(razao_educando_palestra))
+
+ggplot(df_uf_razao_educandos, aes(
+    x = razao_educando_palestra,
+    y = reorder(Uf, razao_educando_palestra)
+  )) +
+  geom_col(fill = "steelblue") +
+  geom_vline(xintercept = global_razao_educando_palestra, linetype = "dashed", size = 0.7) +
+  annotate("text",
+           x = global_razao_educando_palestra,
+           y = 0.5,
+           label = paste0("          ", round(global_razao_educando_palestra,2)),
+           angle = 0,
+           vjust = -0.5) +
+  geom_text(aes(label = round(razao_educando_palestra,2)), hjust = -0.1) +
+  labs(title = "Razão Educandos por Palestra por UF", x = "Razão", y = "UF") +
+  theme_minimal()
+```
+```{r tabela-uf-educandos, echo=TRUE}
+df_uf_razao_educandos %>% kable("html") %>% kable_styling()
+```
+
+# Conclusão
+Este relatório mostrou as razões ordenadas da maior para a menor, incluiu valores nos gráficos e adicionou linhas de referência nacionais com labels para facilitar a comparação.
+
