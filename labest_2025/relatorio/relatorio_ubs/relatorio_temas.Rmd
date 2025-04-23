@@ -1,0 +1,44 @@
+---
+title: "Relatório Temas de Saude 2023-2024"
+author: "Grupo 2"
+date: "`r format(Sys.Date(), '%d de %B de %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: yeti
+    highlight: tango
+    code_folding: show
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+pacman::p_load(tidyverse, readxl, ggplot2, scales, kableExtra)
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+# Introdução
+Este relatório apresenta indicadores ...
+
+# Dados
+## Leitura
+```{r leitura-dados, echo=TRUE}
+
+temas_municipio <- read_excel("temas_municipio_2023.xlsx") #Numerador (Saúde Bucal, Alimentação saudável, Saúde sexual e reprodutiva, Saúde mental, Autocuidado de pessoas com doenças crônicas)
+
+pop_cadastrada <- read_excel("pop_cadastrada_2023_denominador_temas_e_praticas.xls") # Denominador (populacao cadastrada)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
