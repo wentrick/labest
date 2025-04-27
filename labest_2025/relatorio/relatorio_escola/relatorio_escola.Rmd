@@ -15,20 +15,20 @@ output:
 
 ```{r setup, include=FALSE}
 pacman::p_load(tidyverse, readxl, ggplot2, scales, kableExtra)
-knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
 ```
 
 # Introdução
-Este relatório apresenta indicadores escolares referentes ao período de 2023-2024, incluindo número de escolas, educandos, atividade e razões derivadas. Analisamos por região e UF, comparando cada unidade à média nacional.
+Este relatório apresenta indicadores escolares referentes ao período de 2023-2024, incluindo número de escolas, educandos, atividade.......
 
 # Dados
 ## Leitura
-```{r leitura-dados, echo=TRUE}
+```{r leitura-dados}
 atividade_municipio <- read_excel("atividades_pse_2023_numerador.xlsx")  %>% #Numerador (Numero de atividades em escolas por municipio)
   rename(municipio = Municipio) 
 
 escolas_adesao <- read_excel("escolas_pse_adesao_2023_2024_denominador.xlsx") %>% #Denominador (Numero de escolas por municipio)
-  rename(municipio = MUNICÍPIO)
+  rename(municipio = MUNICIPIO) 
 
 ```
 ## Criando DataFrame das Regioes e UFs
@@ -54,7 +54,7 @@ print(uf_regiao)
 
 
 ## Tratamento
-```{r preparacao-dados, echo=TRUE}
+```{r preparacao-dados}
 df_escola_municipio <- escolas_adesao %>%
   group_by(municipio) %>%
   summarise(
@@ -67,7 +67,7 @@ df_atividades_municipio = atividade_municipio %>%
 ```
 
 # Indicadores
-```{r calculo-indicadores, echo=TRUE}
+```{r calculo-indicadores}
 df_final <- left_join(df_escola_municipio, df_atividades_municipio, by='municipio') %>%
   rename(UF = Uf, atividade_educacao = Educação, atividade_saude = Saúde) %>%
   mutate(
@@ -91,7 +91,7 @@ global_razao_educando_atividade  <- sum(df_final$educandos, na.rm = TRUE) / sum(
 
 ### atividade por Escola
 
-```{r regiao-atividade, echo=TRUE}
+```{r regiao-atividade}
 df_regiao_razao_atividade <- df_final %>%
   drop_na() %>%
   group_by(regiao) %>%
@@ -120,12 +120,12 @@ ggplot(df_regiao_razao_atividade, aes(
   theme_minimal() +
   scale_fill_brewer(palette = "Set2")
 ```
-```{r tabela-regiao-atividade, echo=TRUE}
+```{r tabela-regiao-atividade}
 df_regiao_razao_atividade %>% kable("html") %>% kable_styling()
 ```
 
 ### Educandos por Atividade
-```{r regiao-educandos, echo=TRUE}
+```{r regiao-educandos}
 df_regiao_razao_educandos <- df_final %>%
   drop_na() %>%
   group_by(regiao) %>%
@@ -142,11 +142,11 @@ ggplot(df_regiao_razao_educandos, aes(
     fill = regiao
   )) +
   geom_col() +
-  geom_vline(xintercept = global_razao_educando_atividade, linetype = "dashed", size = 0.7) +
+  geom_vline(xintercept = global_razao_atividade_por_escola, linetype = "dashed", size = 0.7) +
   annotate("text",
-           x = global_razao_educando_atividade,
+           x = global_razao_atividade_por_escola,
            y = 0.5,
-           label = paste0("           ", round(global_razao_educando_atividade,2)),
+           label = paste0("           ", round(global_razao_atividade_por_escola,2)),
            angle = 0,
            vjust = 0.5) +
   geom_text(aes(label = round(razao_educando_atividade,2)), hjust = -0.1) +
@@ -154,13 +154,13 @@ ggplot(df_regiao_razao_educandos, aes(
   theme_minimal() +
   scale_fill_brewer(palette = "Set2")
 ```
-```{r tabela-regiao-educandos, echo=TRUE}
+```{r tabela-regiao-educandos}
 df_regiao_razao_educandos %>% kable("html") %>% kable_styling()
 ```
 
 ## Razões por UF
 ### atividade por Escola
-```{r uf-atividade, fig.width=10, echo=TRUE}
+```{r uf-atividade, fig.width=10}
 df_uf_razao_atividade <- df_final %>%
   drop_na() %>%
   group_by(UF) %>%
@@ -176,23 +176,23 @@ ggplot(df_uf_razao_atividade, aes(
     y = reorder(UF, razao_atividade_por_escola)
   )) +
   geom_col(fill = "steelblue") +
-  geom_vline(xintercept = global_razao_atividade_por_escola, linetype = "dashed", size = 0.7) +
+  geom_vline(xintercept = global_razao_educando_atividade, linetype = "dashed", size = 0.7) +
   annotate("text",
-           x = global_razao_atividade_por_escola,
+           x = global_razao_educando_atividade,
            y = 0.5,
-           label = paste0("           ", round(global_razao_atividade_por_escola,2)),
+           label = paste0("           ", round(global_razao_educando_atividade,2)),
            angle = 0,
            vjust = -0.5) +
   geom_text(aes(label = round(razao_atividade_por_escola,2)), hjust = -0.1) +
   labs(title = "Razão atividade por Escola por UF", x = "Razão", y = "UF") +
   theme_minimal()
 ```
-```{r tabela-uf-atividade, echo=TRUE}
+```{r tabela-uf-atividade}
 df_uf_razao_atividade %>% kable("html") %>% kable_styling()
 ```
 
 ### Educandos por atividade
-```{r uf-educandos, fig.width=10, echo=TRUE}
+```{r uf-educandos, fig.width=10}
 df_uf_razao_educandos <- df_final %>%
   drop_na() %>%
   group_by(UF) %>%
@@ -219,10 +219,9 @@ ggplot(df_uf_razao_educandos, aes(
   labs(title = "Razão Educandos por atividade por UF", x = "Razão", y = "UF") +
   theme_minimal()
 ```
-```{r tabela-uf-educandos, echo=TRUE}
+```{r tabela-uf-educandos}
 df_uf_razao_educandos %>% kable("html") %>% kable_styling()
 ```
 
 # Conclusão
-Este relatório mostrou as razões ordenadas da maior para a menor, incluiu valores nos gráficos e adicionou linhas de referência nacionais com labels para facilitar a comparação.
 

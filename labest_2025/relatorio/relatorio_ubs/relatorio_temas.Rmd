@@ -1,5 +1,5 @@
 ---
-title: "Relatório Temas de Saude 2023-2024"
+title: "Relatório de Indicadores de Temas de Saúde 2023"
 author: "Grupo 2"
 date: "`r format(Sys.Date(), '%d de %B de %Y')`"
 output:
@@ -14,31 +14,228 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-pacman::p_load(tidyverse, readxl, ggplot2, scales, kableExtra)
-knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+pacman::p_load(tidyverse, readxl, scales, kableExtra)
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
 ```
 
-# Introdução
-Este relatório apresenta indicadores ...
+#  Introdução
+Este relatório apresenta indicadores relativos a cinco temas de saúde (saúde bucal, alimentação saudável, saúde sexual e reprodutiva, saúde mental e autocuidado de pessoas com doenças crônicas) em níveis municipal, estadual, regional e nacional.
 
-# Dados
-## Leitura
-```{r leitura-dados, echo=TRUE}
+#  Metodologia
 
-temas_municipio <- read_excel("temas_municipio_2023.xlsx") #Numerador (Saúde Bucal, Alimentação saudável, Saúde sexual e reprodutiva, Saúde mental, Autocuidado de pessoas com doenças crônicas)
+##  Fontes de dados
+- **temas_municipio_2023.xlsx**: contêm os valores absolutos por município para cada tema.
+- **pop_cadastrada_2023_denominador_temas_e_praticas.xls**: população cadastrada por município (denominador).
 
-pop_cadastrada <- read_excel("pop_cadastrada_2023_denominador_temas_e_praticas.xls") # Denominador (populacao cadastrada)
+##  Cálculo dos indicadores
+Para cada unidade territorial, calculamos indicadores individuais dividindo o valor de cada tema pela população cadastrada, e um indicador composto (total) pela soma dos cinco temas sobre a população cadastrada.
+
+#  Indicadores Municipais
+
+## Cálculo
+```{r}
+# Leitura e seleção
+
+# temas: limpa e padroniza nomes e seleciona colunas de interesse
+temas <- read_excel("temas_municipio_2023.xlsx") %>%
+  janitor::clean_names() %>%
+  # seleciona variáveis de interesse já em snake_case
+  select(uf, ibge, municipio,
+         saude_bucal, alimentacao_saudavel,
+         saude_sexual_e_reprodutiva, saude_mental,
+         autocuidado_de_pessoas_com_doe)
+
+# pop: limpa nomes e renomeia conforme formato do usuário
+pop <- read_excel("pop_cadastrada_2023_denominador_temas_e_praticas.xls") %>%
+  janitor::clean_names() %>%
+  rename(
+    pop_total = qt_total_de_cadastros_limitado_pela_populacao_ibge
+  )
+
+# Junta e calcula indicadores
+
+mun <- temas %>%
+  left_join(pop, by = "ibge") %>%
+  drop_na() %>%
+  mutate(total_temas = saude_bucal + alimentacao_saudavel + saude_sexual_e_reprodutiva +
+                 saude_mental + autocuidado_de_pessoas_com_doe,
+    across(
+      .cols = c(saude_bucal, alimentacao_saudavel,
+                saude_sexual_e_reprodutiva, saude_mental,
+                autocuidado_de_pessoas_com_doe),
+      .fns = ~ .x / pop_total,
+      .names = "ind_{.col}"
+    ),
+    ind_total = total_temas / pop_total
+  ) %>%
+  mutate(
+    across(
+      .cols = starts_with("ind_"),
+      .fns = ~ format(round(.x, 3), nsmall = 3)
+    )
+  ) %>%
+  select(
+    uf = uf.x, municipio = municipio.x, ibge, pop_total,
+    saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
+    saude_mental, autocuidado_de_pessoas_com_doe,total_temas,
+    starts_with("ind_")
+  )
 
 ```
 
 
+```{r}
+# Exibe tabela resumo municipal
+mun %>%
+  arrange(desc(ind_total)) %>%
+  slice_head(n = 10) %>%
+  kable("html", caption = "Indicadores por Municipio") %>%
+  kable_styling()
+```
+
+## Gráfico
+```{r}
+
+# Supondo que 'mun' já esteja definido conforme o código anterior
+
+# Calculando o indicador global (média de ind_total)
+indicador_global <- sum(mun$total_temas)/sum(mun$pop_total)
+
+# Selecionando os top 10 municípios com base no 'ind_total' e ordenando do maior para o menor
+top_10_mun <- mun %>%
+  slice_max(ind_total, n = 10) %>%
+  arrange(desc(ind_total))
+
+# Criando o gráfico de barras
+ggplot(top_10_mun, aes(x = reorder(municipio, as.numeric(ind_total)), y = as.numeric(ind_total))) +
+  geom_col() +
+  coord_flip() +
+  labs(x = "Municipio", y = "Indicador Total",
+       title = "Top 10 Municipios por Indicador Total") +
+  theme_minimal() +  # Adicionando um tema para melhorar a aparência do gráfico
+  geom_hline(aes(yintercept = indicador_global), color = "red", linetype = "dashed", size = 1) +
+  annotate("text", x = indicador_global, y = indicador_global, label = paste("Indicador Global: ", round(indicador_global, 3)),
+           hjust = -1.4, vjust = -2, color = "red")
 
 
+```
 
 
+#  Indicadores Estaduais
+
+## Cálculo
+```{r}
+
+# Supondo que 'mun' já esteja definido conforme o código anterior
+
+# Agrupando por UF e recalculando os valores de forma eficiente
+uf_summary <- mun %>%
+  group_by(uf) %>%
+  summarise(
+    across(c(pop_total, saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
+             saude_mental, autocuidado_de_pessoas_com_doe, total_temas), sum, na.rm = TRUE)
+  ) %>%
+  mutate(
+    across(c(saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
+             saude_mental, autocuidado_de_pessoas_com_doe, total_temas),
+           ~ round(.x / pop_total, 3),
+           .names = "ind_{.col}")
+  )
+
+# Exibindo o data frame resultante
+print(uf_summary)
+```
 
 
+```{r}
+uf_summary %>%
+  arrange(desc(ind_total_temas)) %>%
+  kable("html", caption = "Indicadores por Estado") %>%
+  kable_styling(full_width = FALSE)
+```
+
+## Gráfico
+```{r}
+# Supondo que 'uf_summary' já esteja definido conforme o código anterior
+
+# Calculando o indicador global (média de ind_total)
+indicador_global <- sum(uf_summary$total_temas)/sum(uf_summary$pop_total)
+
+# Criando o gráfico de barras
+ggplot(uf_summary, aes(x = reorder(uf, ind_total_temas), y = ind_total_temas)) +
+  geom_col() +
+  coord_flip() +
+  geom_hline(yintercept = indicador_global, color = "red", linetype = "dashed", size = 1) +
+  annotate("text", x = indicador_global, y = indicador_global, label = paste("Indicador Global: ", round(indicador_global, 3)),
+           hjust = 1.1, vjust = -0.5, color = "red") +
+  labs(x = "Estado (UF)", y = "Indicador Total",
+       title = "Indicador Total por Estado") +
+  theme_minimal()  # Adicionando um tema para melhorar a aparência do gráfico
+
+```
+
+#  Indicadores Regionais
+
+##  Mapeamento de regiões
+```{r}
+# Definição manual das regiões
+ufs_norte <- c("AC","AP","AM","PA","RO","RR","TO")
+ufs_nordeste <- c("MA","PI","CE","RN","PB","PE","AL","SE","BA")
+ufs_sudeste <- c("SP","RJ","ES","MG")
+ufs_sul <- c("PR","RS","SC")
+ufs_centro <- c("MT","MS","GO","DF")
+
+# Adicionando a coluna 'regiao' ao data frame 'mun'
+mun <- mun %>%
+  mutate(regiao = case_when(
+    uf %in% ufs_norte    ~ "Norte",
+    uf %in% ufs_nordeste ~ "Nordeste",
+    uf %in% ufs_sudeste  ~ "Sudeste",
+    uf %in% ufs_sul      ~ "Sul",
+    uf %in% ufs_centro   ~ "Centro-Oeste"
+  ))
+
+# Agrupando por região e recalculando os valores de forma eficiente
+reg <- mun %>%
+  group_by(regiao) %>%
+  summarise(
+    across(c(pop_total, saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
+             saude_mental, autocuidado_de_pessoas_com_doe, total_temas), sum, na.rm = TRUE)
+  ) %>%
+  mutate(
+    across(c(saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
+             saude_mental, autocuidado_de_pessoas_com_doe, total_temas),
+           ~ round(.x / pop_total, 3),
+           .names = "ind_{.col}")
+  )
+```
 
 
+```{r}
+# Exibindo o data frame resultante
+reg %>%
+  arrange(desc(ind_total_temas)) %>%
+  kable("html", caption = "Indicadores por Regiao") %>%
+  kable_styling(full_width = FALSE)
+```
 
+## Gráfico
+```{r}
+# Supondo que 'reg' já esteja definido conforme o código anterior
+
+# Calculando o indicador global (média de ind_total)
+indicador_global <- sum(reg$total_temas)/sum(reg$pop_total)
+
+# Criando o gráfico de barras
+ggplot(reg, aes(x = reorder(regiao, ind_total_temas), y = ind_total_temas)) +
+  geom_col() +
+  coord_flip() +
+  geom_hline(yintercept = indicador_global, color = "red", linetype = "dashed", size = 1) +
+  annotate("text", x = indicador_global, y = indicador_global, label = paste("Indicador Global: ", round(indicador_global, 3)),
+           hjust = 1.1, vjust = -0.5, color = "red") +
+  labs(x = "Regiao", y = "Indicador Total",
+       title = "Indicador Total por Regiao") +
+  theme_minimal()  # Adicionando um tema para melhorar a aparência do gráfico
+
+```
 
