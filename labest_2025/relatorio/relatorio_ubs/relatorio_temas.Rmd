@@ -15,7 +15,7 @@ output:
 
 ```{r setup, include=FALSE}
 pacman::p_load(tidyverse, readxl, scales, kableExtra)
-knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
 ```
 
 #  Introdução
@@ -53,7 +53,6 @@ pop <- read_excel("pop_cadastrada_2023_denominador_temas_e_praticas.xls") %>%
   )
 
 # Junta e calcula indicadores
-
 mun <- temas %>%
   left_join(pop, by = "ibge") %>%
   drop_na() %>%
@@ -63,24 +62,40 @@ mun <- temas %>%
       .cols = c(saude_bucal, alimentacao_saudavel,
                 saude_sexual_e_reprodutiva, saude_mental,
                 autocuidado_de_pessoas_com_doe),
-      .fns = ~ .x / pop_total,
+      .fns = ~ (.x / pop_total)*100000, #a cada 100.000 habitantes
       .names = "ind_{.col}"
     ),
-    ind_total = total_temas / pop_total
+    ind_total = (total_temas / pop_total)*100000 #a cada 100.000 habitantes
   ) %>%
   mutate(
     across(
       .cols = starts_with("ind_"),
       .fns = ~ format(round(.x, 3), nsmall = 3)
     )
-  ) %>%
+  ) 
+
+# Definição manual das regiões
+ufs_norte <- c("AC","AP","AM","PA","RO","RR","TO")
+ufs_nordeste <- c("MA","PI","CE","RN","PB","PE","AL","SE","BA")
+ufs_sudeste <- c("SP","RJ","ES","MG")
+ufs_sul <- c("PR","RS","SC")
+ufs_centro <- c("MT","MS","GO","DF")
+
+# Adicionando a coluna 'regiao' ao data frame 'mun'
+mun <- mun %>%
+  mutate(regiao = case_when(
+    uf.x %in% ufs_norte    ~ "Norte",
+    uf.x %in% ufs_nordeste ~ "Nordeste",
+    uf.x %in% ufs_sudeste  ~ "Sudeste",
+    uf.x %in% ufs_sul      ~ "Sul",
+    uf.x %in% ufs_centro   ~ "Centro-Oeste"
+  )) %>%
   select(
-    uf = uf.x, municipio = municipio.x, ibge, pop_total,
+    regiao, uf = uf.x, municipio = municipio.x, ibge, pop_total,
     saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
     saude_mental, autocuidado_de_pessoas_com_doe,total_temas,
     starts_with("ind_")
   )
-
 ```
 
 
@@ -94,28 +109,48 @@ mun %>%
 ```
 
 ## Gráfico
-```{r}
-
-# Supondo que 'mun' já esteja definido conforme o código anterior
-
-# Calculando o indicador global (média de ind_total)
-indicador_global <- sum(mun$total_temas)/sum(mun$pop_total)
-
-# Selecionando os top 10 municípios com base no 'ind_total' e ordenando do maior para o menor
+```{r, fig.width=12, fig.height=6}
 top_10_mun <- mun %>%
-  slice_max(ind_total, n = 10) %>%
-  arrange(desc(ind_total))
+  slice_max(ind_total, n = 10) %>% arrange(desc(ind_total)) %>%
+  mutate(
+    mun_uf    = paste0(municipio, " - ", uf),
+    ind_total = as.numeric(ind_total)
+  )
 
-# Criando o gráfico de barras
-ggplot(top_10_mun, aes(x = reorder(municipio, as.numeric(ind_total)), y = as.numeric(ind_total))) +
+indicador_global <- (sum(mun$total_temas) / sum(mun$pop_total)) * 100000
+max_ind <- max(top_10_mun$ind_total, na.rm = TRUE)
+
+ggplot(top_10_mun, aes(
+    x    = reorder(mun_uf, ind_total),
+    y    = ind_total,
+    fill = regiao
+  )) +
   geom_col() +
-  coord_flip() +
-  labs(x = "Municipio", y = "Indicador Total",
-       title = "Top 10 Municipios por Indicador Total") +
-  theme_minimal() +  # Adicionando um tema para melhorar a aparência do gráfico
-  geom_hline(aes(yintercept = indicador_global), color = "red", linetype = "dashed", size = 1) +
-  annotate("text", x = indicador_global, y = indicador_global, label = paste("Indicador Global: ", round(indicador_global, 3)),
-           hjust = -1.4, vjust = -2, color = "red")
+  geom_text(aes(label = round(ind_total, 1)), hjust = -0.1, size = 3.5) +
+  coord_flip(expand = FALSE) +
+  scale_y_continuous(
+    limits = c(0, max_ind * 1.2),
+    breaks = pretty_breaks(n = 7),
+    labels = comma
+  ) +
+  scale_fill_brewer(palette = "Set2", name = "Regiao") +
+  labs(
+    x     = "Municipio - UF",
+    y     = "Indicador Total",
+    title = "Top 10 Municipios por Indicador Total"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.margin     = margin(t = 5, r = 20, b = 5, l = 5)
+  ) +
+  geom_hline(aes(yintercept = indicador_global),
+             color    = "black",
+             linetype = "dashed",
+             size     = 1) +
+  annotate("text", x = 0, y = indicador_global,
+           label = paste("Indicador Global: ", round(indicador_global, 3)),
+           hjust = -3, vjust = -2, color = "black")
 
 
 ```
@@ -135,10 +170,19 @@ uf_summary <- mun %>%
     across(c(pop_total, saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
              saude_mental, autocuidado_de_pessoas_com_doe, total_temas), sum, na.rm = TRUE)
   ) %>%
+  mutate(regiao = case_when(
+    uf %in% ufs_norte    ~ "Norte",
+    uf %in% ufs_nordeste ~ "Nordeste",
+    uf %in% ufs_sudeste  ~ "Sudeste",
+    uf %in% ufs_sul      ~ "Sul",
+    uf %in% ufs_centro   ~ "Centro-Oeste"
+  )) %>% 
+  select(regiao,uf,pop_total, saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
+             saude_mental, autocuidado_de_pessoas_com_doe, total_temas) %>%
   mutate(
     across(c(saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
              saude_mental, autocuidado_de_pessoas_com_doe, total_temas),
-           ~ round(.x / pop_total, 3),
+           ~ (.x / pop_total)*100000,
            .names = "ind_{.col}")
   )
 
@@ -155,45 +199,56 @@ uf_summary %>%
 ```
 
 ## Gráfico
-```{r}
-# Supondo que 'uf_summary' já esteja definido conforme o código anterior
+```{r,fig.width=9, fig.height=5}
+# recalcula global
+indicador_global <- (sum(uf_summary$total_temas) / sum(uf_summary$pop_total)) * 100000
 
-# Calculando o indicador global (média de ind_total)
-indicador_global <- sum(uf_summary$total_temas)/sum(uf_summary$pop_total)
+# maior valor para ajuste de espaço
+max_val <- max(uf_summary$ind_total_temas, na.rm = TRUE)
 
-# Criando o gráfico de barras
-ggplot(uf_summary, aes(x = reorder(uf, ind_total_temas), y = ind_total_temas)) +
+ggplot(uf_summary, aes(
+    x    = reorder(uf, ind_total_temas),
+    y    = ind_total_temas,
+    fill = regiao
+  )) +
   geom_col() +
-  coord_flip() +
-  geom_hline(yintercept = indicador_global, color = "red", linetype = "dashed", size = 1) +
-  annotate("text", x = indicador_global, y = indicador_global, label = paste("Indicador Global: ", round(indicador_global, 3)),
-           hjust = 1.1, vjust = -0.5, color = "red") +
-  labs(x = "Estado (UF)", y = "Indicador Total",
-       title = "Indicador Total por Estado") +
-  theme_minimal()  # Adicionando um tema para melhorar a aparência do gráfico
-
+  geom_text(
+    aes(label = round(ind_total_temas, 1)),
+    hjust = -0.1,
+    size  = 3
+  ) +
+  coord_flip(clip = "off") +
+  scale_y_continuous(
+    limits = c(0, max_val * 1.15),
+    expand = expansion(mult = c(0, 0)),
+    labels = comma
+  ) +
+  geom_hline(
+    yintercept = indicador_global,
+    color      = "black",
+    linetype   = "dashed",
+    size       = 1
+  ) +
+  annotate(
+    "text",
+    x     = 0,
+    y     = indicador_global,
+    label = paste("Indicador Global: ", round(indicador_global, 3)),
+    hjust = -0.5, vjust = -0.5,
+    color = "black"
+  ) +
+  labs(
+    x     = "Estado (UF)",
+    y     = "Indicador Total",
+    title = "Indicador Total por Estado"
+  ) +
+  theme_minimal()
 ```
 
 #  Indicadores Regionais
 
 ##  Mapeamento de regiões
 ```{r}
-# Definição manual das regiões
-ufs_norte <- c("AC","AP","AM","PA","RO","RR","TO")
-ufs_nordeste <- c("MA","PI","CE","RN","PB","PE","AL","SE","BA")
-ufs_sudeste <- c("SP","RJ","ES","MG")
-ufs_sul <- c("PR","RS","SC")
-ufs_centro <- c("MT","MS","GO","DF")
-
-# Adicionando a coluna 'regiao' ao data frame 'mun'
-mun <- mun %>%
-  mutate(regiao = case_when(
-    uf %in% ufs_norte    ~ "Norte",
-    uf %in% ufs_nordeste ~ "Nordeste",
-    uf %in% ufs_sudeste  ~ "Sudeste",
-    uf %in% ufs_sul      ~ "Sul",
-    uf %in% ufs_centro   ~ "Centro-Oeste"
-  ))
 
 # Agrupando por região e recalculando os valores de forma eficiente
 reg <- mun %>%
@@ -205,7 +260,7 @@ reg <- mun %>%
   mutate(
     across(c(saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
              saude_mental, autocuidado_de_pessoas_com_doe, total_temas),
-           ~ round(.x / pop_total, 3),
+           ~ (.x / pop_total)*100000,
            .names = "ind_{.col}")
   )
 ```
@@ -220,22 +275,53 @@ reg %>%
 ```
 
 ## Gráfico
-```{r}
-# Supondo que 'reg' já esteja definido conforme o código anterior
+```{r,fig.width=9, fig.height=5}
+# recalcula global
+indicador_global <- (sum(reg$total_temas) / sum(reg$pop_total)) * 100000
 
-# Calculando o indicador global (média de ind_total)
-indicador_global <- sum(reg$total_temas)/sum(reg$pop_total)
+# maior valor para ajustar espaço
+max_val <- max(reg$ind_total_temas, na.rm = TRUE)
 
-# Criando o gráfico de barras
-ggplot(reg, aes(x = reorder(regiao, ind_total_temas), y = ind_total_temas)) +
-  geom_col() +
-  coord_flip() +
-  geom_hline(yintercept = indicador_global, color = "red", linetype = "dashed", size = 1) +
-  annotate("text", x = indicador_global, y = indicador_global, label = paste("Indicador Global: ", round(indicador_global, 3)),
-           hjust = 1.1, vjust = -0.5, color = "red") +
-  labs(x = "Regiao", y = "Indicador Total",
-       title = "Indicador Total por Regiao") +
-  theme_minimal()  # Adicionando um tema para melhorar a aparência do gráfico
+ggplot(reg, aes(
+    x = reorder(regiao, ind_total_temas),
+    y = ind_total_temas
+  )) +
+  geom_col(fill = "steelblue") +           # fill fora do aes(), cor fixa azul
+  geom_text(
+    aes(label = round(ind_total_temas, 1)),
+    hjust = -0.1,
+    size  = 3
+  ) +
+  coord_flip(clip = "off") +
+  scale_y_continuous(
+    limits = c(0, max_val * 1.15),
+    expand = expansion(mult = c(0, 0)),
+    labels = comma
+  ) +
+  geom_hline(
+    yintercept = indicador_global,
+    color      = "black",
+    linetype   = "dashed",
+    size       = 1
+  ) +
+  annotate(
+    "text",
+    x     = 0,
+    y     = indicador_global,
+    label = paste("Indicador Global: ", round(indicador_global, 3)),
+    hjust  = 1.1,
+    vjust  = -0.5,
+    color  = "black"
+  ) +
+  labs(
+    x     = "Regiao",
+    y     = "Indicador Total",
+    title = "Indicador Total por Regiao"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(t = 5, r = 20, b = 5, l = 5)
+  )
 
 ```
 

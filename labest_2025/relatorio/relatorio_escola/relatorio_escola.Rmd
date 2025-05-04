@@ -15,7 +15,7 @@ output:
 
 ```{r setup, include=FALSE}
 pacman::p_load(tidyverse, readxl, ggplot2, scales, kableExtra)
-knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
 ```
 
 # Introdução
@@ -142,11 +142,11 @@ ggplot(df_regiao_razao_educandos, aes(
     fill = regiao
   )) +
   geom_col() +
-  geom_vline(xintercept = global_razao_atividade_por_escola, linetype = "dashed", size = 0.7) +
+  geom_vline(xintercept = global_razao_educando_atividade, linetype = "dashed", size = 0.7) +
   annotate("text",
-           x = global_razao_atividade_por_escola,
+           x = global_razao_educando_atividade,
            y = 0.5,
-           label = paste0("           ", round(global_razao_atividade_por_escola,2)),
+           label = paste0("           ", round(global_razao_educando_atividade,2)),
            angle = 0,
            vjust = 0.5) +
   geom_text(aes(label = round(razao_educando_atividade,2)), hjust = -0.1) +
@@ -176,11 +176,11 @@ ggplot(df_uf_razao_atividade, aes(
     y = reorder(UF, razao_atividade_por_escola)
   )) +
   geom_col(fill = "steelblue") +
-  geom_vline(xintercept = global_razao_educando_atividade, linetype = "dashed", size = 0.7) +
+  geom_vline(xintercept = global_razao_atividade_por_escola, linetype = "dashed", size = 0.7) +
   annotate("text",
-           x = global_razao_educando_atividade,
+           x = global_razao_atividade_por_escola,
            y = 0.5,
-           label = paste0("           ", round(global_razao_educando_atividade,2)),
+           label = paste0("           ", round(global_razao_atividade_por_escola,2)),
            angle = 0,
            vjust = -0.5) +
   geom_text(aes(label = round(razao_atividade_por_escola,2)), hjust = -0.1) +
