@@ -270,7 +270,7 @@ reg <- mun %>%
 # Exibindo o data frame resultante
 reg %>%
   arrange(desc(ind_total_temas)) %>%
-  kable("html", caption = "Indicadores por Regiao") %>%
+  kable("html", caption = "Indicadores por Região") %>%
   kable_styling(full_width = FALSE)
 ```
 
@@ -317,7 +317,7 @@ ggplot(reg, aes(
   labs(
     x     = "UF",
     y     = "Taxa total de temas",
-    title = "Taxa por regiao"
+    title = "Taxa por Região"
   ) +
   theme_minimal() +
   theme(

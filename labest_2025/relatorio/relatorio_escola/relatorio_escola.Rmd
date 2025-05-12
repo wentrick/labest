@@ -112,11 +112,11 @@ ggplot(df_regiao_razao_atividade, aes(
   annotate("text",
            x = 14,
            y = 0.5,
-           label = paste0("Taxa naciona: ", round(global_razao_atividade_por_escola,2)),
+           label = paste0("Taxa nacional: ", round(global_razao_atividade_por_escola,2)),
            angle = 0,
            vjust = 0.5) +
   geom_text(aes(label = round(razao_atividade_por_escola,2)), hjust = -0.1) +
-  labs(title = "Taxapor Região (atividades por escola)", x = "Taxa", y = "Região") +
+  labs(title = "Taxa por Região (atividades por escola)", x = "Taxa", y = "Região") +
   theme_minimal() +
   guides(fill = FALSE) #+
   #scale_fill_brewer(palette = "Set2")
