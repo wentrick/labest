@@ -104,7 +104,7 @@ mun <- mun %>%
 mun %>%
   arrange(desc(ind_total)) %>%
   slice_head(n = 10) %>%
-  kable("html", caption = "Indicadores por Municipio") %>%
+  kable("html", caption = "Taxas por Municipio") %>%
   kable_styling()
 ```
 
@@ -133,11 +133,11 @@ ggplot(top_10_mun, aes(
     breaks = pretty_breaks(n = 7),
     labels = comma
   ) +
-  scale_fill_brewer(palette = "Set2", name = "Regiao") +
+  #scale_fill_brewer(palette = "Set2", name = "Regiao") +
   labs(
     x     = "Municipio - UF",
-    y     = "Indicador Total",
-    title = "Top 10 Municipios por Indicador Total"
+    y     = "Taxa total de temas",
+    title = "Os 10 Municipios com maior taxa"
   ) +
   theme_minimal() +
   theme(
@@ -149,7 +149,7 @@ ggplot(top_10_mun, aes(
              linetype = "dashed",
              size     = 1) +
   annotate("text", x = 0, y = indicador_global,
-           label = paste("Indicador Global: ", round(indicador_global, 3)),
+           label = paste("Taxa nacional: ", round(indicador_global, 3)),
            hjust = -3, vjust = -2, color = "black")
 
 
@@ -194,7 +194,7 @@ print(uf_summary)
 ```{r}
 uf_summary %>%
   arrange(desc(ind_total_temas)) %>%
-  kable("html", caption = "Indicadores por Estado") %>%
+  kable("html", caption = "Taxas por UF") %>%
   kable_styling(full_width = FALSE)
 ```
 
@@ -233,14 +233,14 @@ ggplot(uf_summary, aes(
     "text",
     x     = 0,
     y     = indicador_global,
-    label = paste("Indicador Global: ", round(indicador_global, 3)),
+    label = paste("Taxa nacional: ", round(indicador_global, 3)),
     hjust = -0.5, vjust = -0.5,
     color = "black"
   ) +
   labs(
-    x     = "Estado (UF)",
-    y     = "Indicador Total",
-    title = "Indicador Total por Estado"
+    x     = "UF",
+    y     = "Taxa total de temas",
+    title = "Taxa por UF"
   ) +
   theme_minimal()
 ```
@@ -284,9 +284,10 @@ max_val <- max(reg$ind_total_temas, na.rm = TRUE)
 
 ggplot(reg, aes(
     x = reorder(regiao, ind_total_temas),
-    y = ind_total_temas
+    y = ind_total_temas,
+    fill = regiao
   )) +
-  geom_col(fill = "steelblue") +           # fill fora do aes(), cor fixa azul
+  geom_col() +           # fill fora do aes(), cor fixa azul
   geom_text(
     aes(label = round(ind_total_temas, 1)),
     hjust = -0.1,
@@ -308,20 +309,21 @@ ggplot(reg, aes(
     "text",
     x     = 0,
     y     = indicador_global,
-    label = paste("Indicador Global: ", round(indicador_global, 3)),
+    label = paste("Taxa nacional: ", round(indicador_global, 3)),
     hjust  = 1.1,
     vjust  = -0.5,
     color  = "black"
   ) +
   labs(
-    x     = "Regiao",
-    y     = "Indicador Total",
-    title = "Indicador Total por Regiao"
+    x     = "UF",
+    y     = "Taxa total de temas",
+    title = "Taxa por regiao"
   ) +
   theme_minimal() +
   theme(
     plot.margin = margin(t = 5, r = 20, b = 5, l = 5)
-  )
+  )+
+  guides(fill = FALSE)
 
 ```
 

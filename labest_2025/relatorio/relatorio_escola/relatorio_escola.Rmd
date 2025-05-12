@@ -91,7 +91,7 @@ global_razao_educando_atividade  <- sum(df_final$educandos, na.rm = TRUE) / sum(
 
 ### atividade por Escola
 
-```{r regiao-atividade}
+```{r regiao-atividade, fig.width=10}
 df_regiao_razao_atividade <- df_final %>%
   drop_na() %>%
   group_by(regiao) %>%
@@ -110,22 +110,23 @@ ggplot(df_regiao_razao_atividade, aes(
   geom_col() +
   geom_vline(xintercept = global_razao_atividade_por_escola, linetype = "dashed", size = 0.7) +
   annotate("text",
-           x = global_razao_atividade_por_escola,
+           x = 14,
            y = 0.5,
-           label = paste0("          ", round(global_razao_atividade_por_escola,2)),
+           label = paste0("Taxa naciona: ", round(global_razao_atividade_por_escola,2)),
            angle = 0,
            vjust = 0.5) +
   geom_text(aes(label = round(razao_atividade_por_escola,2)), hjust = -0.1) +
-  labs(title = "Razão atividade por Escola por Região", x = "Razão", y = "Região") +
+  labs(title = "Taxapor Região (atividades por escola)", x = "Taxa", y = "Região") +
   theme_minimal() +
-  scale_fill_brewer(palette = "Set2")
+  guides(fill = FALSE) #+
+  #scale_fill_brewer(palette = "Set2")
 ```
 ```{r tabela-regiao-atividade}
 df_regiao_razao_atividade %>% kable("html") %>% kable_styling()
 ```
 
 ### Educandos por Atividade
-```{r regiao-educandos}
+```{r regiao-educandos,fig.width=10}
 df_regiao_razao_educandos <- df_final %>%
   drop_na() %>%
   group_by(regiao) %>%
@@ -144,15 +145,16 @@ ggplot(df_regiao_razao_educandos, aes(
   geom_col() +
   geom_vline(xintercept = global_razao_educando_atividade, linetype = "dashed", size = 0.7) +
   annotate("text",
-           x = global_razao_educando_atividade,
+           x = 25,
            y = 0.5,
-           label = paste0("           ", round(global_razao_educando_atividade,2)),
+           label = paste0("Taxa nacional: ", round(global_razao_educando_atividade,2)),
            angle = 0,
            vjust = 0.5) +
   geom_text(aes(label = round(razao_educando_atividade,2)), hjust = -0.1) +
-  labs(title = "Razão Educandos por atividade por Região", x = "Razão", y = "Região") +
+  labs(title = "Taxa por Região (educandos por atividade)", x = "Taxa", y = "Região") +
   theme_minimal() +
-  scale_fill_brewer(palette = "Set2")
+  guides(fill = FALSE)
+  #scale_fill_brewer(palette = "Set2")
 ```
 ```{r tabela-regiao-educandos}
 df_regiao_razao_educandos %>% kable("html") %>% kable_styling()
@@ -173,18 +175,19 @@ df_uf_razao_atividade <- df_final %>%
 
 ggplot(df_uf_razao_atividade, aes(
     x = razao_atividade_por_escola,
-    y = reorder(UF, razao_atividade_por_escola)
+    y = reorder(UF, razao_atividade_por_escola),
+    fill = regiao
   )) +
-  geom_col(fill = "steelblue") +
+  geom_col() +
   geom_vline(xintercept = global_razao_atividade_por_escola, linetype = "dashed", size = 0.7) +
   annotate("text",
-           x = global_razao_atividade_por_escola,
+           x = 14,
            y = 0.5,
-           label = paste0("           ", round(global_razao_atividade_por_escola,2)),
+           label = paste0("Taxa nacional: ", round(global_razao_atividade_por_escola,2)),
            angle = 0,
            vjust = -0.5) +
   geom_text(aes(label = round(razao_atividade_por_escola,2)), hjust = -0.1) +
-  labs(title = "Razão atividade por Escola por UF", x = "Razão", y = "UF") +
+  labs(title = "Taxa por UF (atividade por escola)", x = "Taxa", y = "UF") +
   theme_minimal()
 ```
 ```{r tabela-uf-atividade}
@@ -205,18 +208,19 @@ df_uf_razao_educandos <- df_final %>%
 
 ggplot(df_uf_razao_educandos, aes(
     x = razao_educando_atividade,
-    y = reorder(UF, razao_educando_atividade)
+    y = reorder(UF, razao_educando_atividade),
+    fill = regiao
   )) +
-  geom_col(fill = "steelblue") +
+  geom_col() +
   geom_vline(xintercept = global_razao_educando_atividade, linetype = "dashed", size = 0.7) +
   annotate("text",
-           x = global_razao_educando_atividade,
+           x = 32,
            y = 0.5,
-           label = paste0("          ", round(global_razao_educando_atividade,2)),
+           label = paste0("Taxa nacional: ", round(global_razao_educando_atividade,2)),
            angle = 0,
            vjust = -0.5) +
   geom_text(aes(label = round(razao_educando_atividade,2)), hjust = -0.1) +
-  labs(title = "Razão Educandos por atividade por UF", x = "Razão", y = "UF") +
+  labs(title = "Taxa por UF (educandos por atividade)", x = "Taxa", y = "UF") +
   theme_minimal()
 ```
 ```{r tabela-uf-educandos}
