@@ -108,7 +108,9 @@ mun %>%
   kable_styling()
 ```
 
-## Gráfico
+## Taxa Total
+
+### Gráfico
 ```{r, fig.width=12, fig.height=6}
 top_10_mun <- mun %>%
   slice_max(ind_total, n = 10) %>% arrange(desc(ind_total)) %>%
@@ -198,7 +200,9 @@ uf_summary %>%
   kable_styling(full_width = FALSE)
 ```
 
-## Gráfico
+## Taxa Total
+
+### Gráfico
 ```{r,fig.width=9, fig.height=5}
 # recalcula global
 indicador_global <- (sum(uf_summary$total_temas) / sum(uf_summary$pop_total)) * 100000
@@ -245,9 +249,273 @@ ggplot(uf_summary, aes(
   theme_minimal()
 ```
 
+
+## Taxa Saúde Bucal
+
+### Gráfico
+```{r,fig.width=9, fig.height=5}
+# recalcula global
+indicador_global <- (sum(uf_summary$saude_bucal) / sum(uf_summary$pop_total)) * 100000
+
+# maior valor para ajuste de espaço
+max_val <- max(uf_summary$ind_saude_bucal, na.rm = TRUE)
+
+ggplot(uf_summary, aes(
+    x    = reorder(uf, ind_saude_bucal),
+    y    = ind_saude_bucal,
+    fill = regiao
+  )) +
+  geom_col() +
+  geom_text(
+    aes(label = round(ind_saude_bucal, 1)),
+    hjust = -0.1,
+    size  = 3
+  ) +
+  coord_flip(clip = "off") +
+  scale_y_continuous(
+    limits = c(0, max_val * 1.15),
+    expand = expansion(mult = c(0, 0)),
+    labels = comma
+  ) +
+  geom_hline(
+    yintercept = indicador_global,
+    color      = "black",
+    linetype   = "dashed",
+    size       = 1
+  ) +
+  annotate(
+    "text",
+    x     = 0,
+    y     = indicador_global,
+    label = paste("Taxa nacional: ", round(indicador_global, 3)),
+    hjust = -0.5, vjust = -0.5,
+    color = "black"
+  ) +
+  labs(
+    x     = "UF",
+    y     = "Taxa Saúde Bucal",
+    title = "Taxa Saúde Bucal por UF"
+  ) +
+  theme_minimal()
+```
+
+## Taxa Alimentacao Saudavel
+
+### Gráfico
+
+### Gráfico
+```{r,fig.width=9, fig.height=5}
+# recalcula global
+indicador_global <- (sum(uf_summary$alimentacao_saudavel) / sum(uf_summary$pop_total)) * 100000
+
+# maior valor para ajuste de espaço
+max_val <- max(uf_summary$ind_alimentacao_saudavel, na.rm = TRUE)
+
+ggplot(uf_summary, aes(
+    x    = reorder(uf, ind_alimentacao_saudavel),
+    y    = ind_alimentacao_saudavel,
+    fill = regiao
+  )) +
+  geom_col() +
+  geom_text(
+    aes(label = round(ind_alimentacao_saudavel, 1)),
+    hjust = -0.1,
+    size  = 3
+  ) +
+  coord_flip(clip = "off") +
+  scale_y_continuous(
+    limits = c(0, max_val * 1.15),
+    expand = expansion(mult = c(0, 0)),
+    labels = comma
+  ) +
+  geom_hline(
+    yintercept = indicador_global,
+    color      = "black",
+    linetype   = "dashed",
+    size       = 1
+  ) +
+  annotate(
+    "text",
+    x     = 0,
+    y     = indicador_global,
+    label = paste("Taxa nacional: ", round(indicador_global, 3)),
+    hjust = -0.5, vjust = -0.5,
+    color = "black"
+  ) +
+  labs(
+    x     = "UF",
+    y     = "Taxa Alimentacao Saudavel",
+    title = "Taxa Alimentacao Saudavel por UF"
+  ) +
+  theme_minimal()
+```
+
+## Taxa Saúde Sexual e Reprodutiva
+
+### Gráfico
+```{r,fig.width=9, fig.height=5}
+# recalcula global
+indicador_global <- (sum(uf_summary$saude_sexual_e_reprodutiva) / sum(uf_summary$pop_total)) * 100000
+
+# maior valor para ajuste de espaço
+max_val <- max(uf_summary$ind_saude_sexual_e_reprodutiva, na.rm = TRUE)
+
+ggplot(uf_summary, aes(
+    x    = reorder(uf, ind_saude_sexual_e_reprodutiva),
+    y    = ind_saude_sexual_e_reprodutiva,
+    fill = regiao
+  )) +
+  geom_col() +
+  geom_text(
+    aes(label = round(ind_saude_sexual_e_reprodutiva, 1)),
+    hjust = -0.1,
+    size  = 3
+  ) +
+  coord_flip(clip = "off") +
+  scale_y_continuous(
+    limits = c(0, max_val * 1.15),
+    expand = expansion(mult = c(0, 0)),
+    labels = comma
+  ) +
+  geom_hline(
+    yintercept = indicador_global,
+    color      = "black",
+    linetype   = "dashed",
+    size       = 1
+  ) +
+  annotate(
+    "text",
+    x     = 0,
+    y     = indicador_global,
+    label = paste("Taxa nacional: ", round(indicador_global, 3)),
+    hjust = -0.5, vjust = -0.5,
+    color = "black"
+  ) +
+  labs(
+    x     = "UF",
+    y     = "Taxa Saúde Sexual e Reprodutiva",
+    title = "Taxa Saúde Sexual e Reprodutiva por UF"
+  ) +
+  theme_minimal()
+```
+
+## Taxa Saúde Mental
+
+### Gráfico
+
+### Gráfico
+```{r,fig.width=9, fig.height=5}
+# recalcula global
+indicador_global <- (sum(uf_summary$saude_mental) / sum(uf_summary$pop_total)) * 100000
+
+# maior valor para ajuste de espaço
+max_val <- max(uf_summary$ind_saude_mental, na.rm = TRUE)
+
+ggplot(uf_summary, aes(
+    x    = reorder(uf, ind_saude_mental),
+    y    = ind_saude_mental,
+    fill = regiao
+  )) +
+  geom_col() +
+  geom_text(
+    aes(label = round(ind_saude_mental, 1)),
+    hjust = -0.1,
+    size  = 3
+  ) +
+  coord_flip(clip = "off") +
+  scale_y_continuous(
+    limits = c(0, max_val * 1.15),
+    expand = expansion(mult = c(0, 0)),
+    labels = comma
+  ) +
+  geom_hline(
+    yintercept = indicador_global,
+    color      = "black",
+    linetype   = "dashed",
+    size       = 1
+  ) +
+  annotate(
+    "text",
+    x     = 0,
+    y     = indicador_global,
+    label = paste("Taxa nacional: ", round(indicador_global, 3)),
+    hjust = -0.5, vjust = -0.5,
+    color = "black"
+  ) +
+  labs(
+    x     = "UF",
+    y     = "Taxa Saúde Mental",
+    title = "Taxa Saúde Mental por UF"
+  ) +
+  theme_minimal()
+```
+
+## Taxa Autocuidado
+
+### Gráfico
+
+### Gráfico
+```{r,fig.width=9, fig.height=5}
+# recalcula global
+indicador_global <- (sum(uf_summary$autocuidado_de_pessoas_com_doe) / sum(uf_summary$pop_total)) * 100000
+
+# maior valor para ajuste de espaço
+max_val <- max(uf_summary$ind_autocuidado_de_pessoas_com_doe, na.rm = TRUE)
+
+ggplot(uf_summary, aes(
+    x    = reorder(uf, ind_autocuidado_de_pessoas_com_doe),
+    y    = ind_autocuidado_de_pessoas_com_doe,
+    fill = regiao
+  )) +
+  geom_col() +
+  geom_text(
+    aes(label = round(ind_autocuidado_de_pessoas_com_doe, 1)),
+    hjust = -0.1,
+    size  = 3
+  ) +
+  coord_flip(clip = "off") +
+  scale_y_continuous(
+    limits = c(0, max_val * 1.15),
+    expand = expansion(mult = c(0, 0)),
+    labels = comma
+  ) +
+  geom_hline(
+    yintercept = indicador_global,
+    color      = "black",
+    linetype   = "dashed",
+    size       = 1
+  ) +
+  annotate(
+    "text",
+    x     = 0,
+    y     = indicador_global,
+    label = paste("Taxa nacional: ", round(indicador_global, 3)),
+    hjust = -0.5, vjust = -0.5,
+    color = "black"
+  ) +
+  labs(
+    x     = "UF",
+    y     = "Taxa Autocuidado",
+    title = "Taxa Autocuidado por UF"
+  ) +
+  theme_minimal()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 #  Indicadores Regionais
 
-##  Mapeamento de regiões
+##  Cálculo
 ```{r}
 
 # Agrupando por região e recalculando os valores de forma eficiente
@@ -266,15 +534,9 @@ reg <- mun %>%
 ```
 
 
-```{r}
-# Exibindo o data frame resultante
-reg %>%
-  arrange(desc(ind_total_temas)) %>%
-  kable("html", caption = "Indicadores por Região") %>%
-  kable_styling(full_width = FALSE)
-```
+## Taxa Total
 
-## Gráfico
+### Gráfico
 ```{r,fig.width=9, fig.height=5}
 # recalcula global
 indicador_global <- (sum(reg$total_temas) / sum(reg$pop_total)) * 100000
@@ -326,4 +588,345 @@ ggplot(reg, aes(
   guides(fill = FALSE)
 
 ```
+
+```{r}
+# Exibindo o data frame resultante
+reg %>%
+  arrange(desc(ind_total_temas)) %>%
+  kable("html", caption = "Indicadores por Região") %>%
+  kable_styling(full_width = FALSE)
+```
+
+
+## Taxa Saúde Bucal
+
+### Gráfico
+
+```{r,fig.width=9, fig.height=5}
+# recalcula global
+indicador_global <- (sum(reg$saude_bucal) / sum(reg$pop_total)) * 100000
+
+# maior valor para ajustar espaço
+max_val <- max(reg$ind_saude_bucal, na.rm = TRUE)
+
+ggplot(reg, aes(
+    x = reorder(regiao, ind_saude_bucal),
+    y = ind_saude_bucal,
+    fill = regiao
+  )) +
+  geom_col() +           # fill fora do aes(), cor fixa azul
+  geom_text(
+    aes(label = round(ind_saude_bucal, 1)),
+    hjust = -0.1,
+    size  = 3
+  ) +
+  coord_flip(clip = "off") +
+  scale_y_continuous(
+    limits = c(0, max_val * 1.15),
+    expand = expansion(mult = c(0, 0)),
+    labels = comma
+  ) +
+  geom_hline(
+    yintercept = indicador_global,
+    color      = "black",
+    linetype   = "dashed",
+    size       = 1
+  ) +
+  annotate(
+    "text",
+    x     = 0,
+    y     = indicador_global,
+    label = paste("Taxa nacional: ", round(indicador_global, 3)),
+    hjust  = 1.1,
+    vjust  = -0.5,
+    color  = "black"
+  ) +
+  labs(
+    x     = "Região",
+    y     = "Taxa Saúde Bucal",
+    title = "Taxa Saúde Bucal por Região"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(t = 5, r = 20, b = 5, l = 5)
+  )+
+  guides(fill = FALSE)
+
+```
+
+```{r}
+# Exibindo o data frame resultante
+reg %>%
+  arrange(desc(ind_total_temas)) %>%
+  kable("html", caption = "Taxa Saúde Bucal por Região") %>%
+  kable_styling(full_width = FALSE)
+```
+
+## Taxa Alimentacao Saudavel
+
+### Gráfico
+
+```{r,fig.width=9, fig.height=5}
+# recalcula global
+indicador_global <- (sum(reg$alimentacao_saudavel) / sum(reg$pop_total)) * 100000
+
+# maior valor para ajustar espaço
+max_val <- max(reg$ind_alimentacao_saudavel, na.rm = TRUE)
+
+ggplot(reg, aes(
+    x = reorder(regiao, ind_alimentacao_saudavel),
+    y = ind_alimentacao_saudavel,
+    fill = regiao
+  )) +
+  geom_col() +           # fill fora do aes(), cor fixa azul
+  geom_text(
+    aes(label = round(ind_alimentacao_saudavel, 1)),
+    hjust = -0.1,
+    size  = 3
+  ) +
+  coord_flip(clip = "off") +
+  scale_y_continuous(
+    limits = c(0, max_val * 1.15),
+    expand = expansion(mult = c(0, 0)),
+    labels = comma
+  ) +
+  geom_hline(
+    yintercept = indicador_global,
+    color      = "black",
+    linetype   = "dashed",
+    size       = 1
+  ) +
+  annotate(
+    "text",
+    x     = 0,
+    y     = indicador_global,
+    label = paste("Taxa nacional: ", round(indicador_global, 3)),
+    hjust  = 1.1,
+    vjust  = -0.5,
+    color  = "black"
+  ) +
+  labs(
+    x     = "Região",
+    y     = "Taxa Alimentacao Saudavel",
+    title = "Taxa Alimentacao Saudavel por Região"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(t = 5, r = 20, b = 5, l = 5)
+  )+
+  guides(fill = FALSE)
+
+```
+
+```{r}
+# Exibindo o data frame resultante
+reg %>%
+  arrange(desc(ind_total_temas)) %>%
+  kable("html", caption = "Indicadores por Região") %>%
+  kable_styling(full_width = FALSE)
+```
+
+## Taxa Saúde Sexual e Reprodutiva
+
+### Gráfico
+
+```{r,fig.width=9, fig.height=5}
+# recalcula global
+indicador_global <- (sum(reg$saude_sexual_e_reprodutiva) / sum(reg$pop_total)) * 100000
+
+# maior valor para ajustar espaço
+max_val <- max(reg$ind_saude_sexual_e_reprodutiva, na.rm = TRUE)
+
+ggplot(reg, aes(
+    x = reorder(regiao, ind_saude_sexual_e_reprodutiva),
+    y = ind_saude_sexual_e_reprodutiva,
+    fill = regiao
+  )) +
+  geom_col() +           # fill fora do aes(), cor fixa azul
+  geom_text(
+    aes(label = round(ind_saude_sexual_e_reprodutiva, 1)),
+    hjust = -0.1,
+    size  = 3
+  ) +
+  coord_flip(clip = "off") +
+  scale_y_continuous(
+    limits = c(0, max_val * 1.15),
+    expand = expansion(mult = c(0, 0)),
+    labels = comma
+  ) +
+  geom_hline(
+    yintercept = indicador_global,
+    color      = "black",
+    linetype   = "dashed",
+    size       = 1
+  ) +
+  annotate(
+    "text",
+    x     = 0,
+    y     = indicador_global,
+    label = paste("Taxa nacional: ", round(indicador_global, 3)),
+    hjust  = 1.1,
+    vjust  = -0.5,
+    color  = "black"
+  ) +
+  labs(
+    x     = "Região",
+    y     = "Taxa Saúde Sexual e Reprodutiva",
+    title = "Taxa Saúde Sexual e Reprodutiva por Região"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(t = 5, r = 20, b = 5, l = 5)
+  )+
+  guides(fill = FALSE)
+
+```
+
+```{r}
+# Exibindo o data frame resultante
+reg %>%
+  arrange(desc(ind_total_temas)) %>%
+  kable("html", caption = "Taxa Saúde Sexual e Reprodutiva por Região") %>%
+  kable_styling(full_width = FALSE)
+```
+
+## Taxa Saúde Mental
+
+### Gráfico
+
+```{r,fig.width=9, fig.height=5}
+# recalcula global
+indicador_global <- (sum(reg$saude_mental) / sum(reg$pop_total)) * 100000
+
+# maior valor para ajustar espaço
+max_val <- max(reg$ind_saude_mental, na.rm = TRUE)
+
+ggplot(reg, aes(
+    x = reorder(regiao, ind_saude_mental),
+    y = ind_saude_mental,
+    fill = regiao
+  )) +
+  geom_col() +           # fill fora do aes(), cor fixa azul
+  geom_text(
+    aes(label = round(ind_saude_mental, 1)),
+    hjust = -0.1,
+    size  = 3
+  ) +
+  coord_flip(clip = "off") +
+  scale_y_continuous(
+    limits = c(0, max_val * 1.15),
+    expand = expansion(mult = c(0, 0)),
+    labels = comma
+  ) +
+  geom_hline(
+    yintercept = indicador_global,
+    color      = "black",
+    linetype   = "dashed",
+    size       = 1
+  ) +
+  annotate(
+    "text",
+    x     = 0,
+    y     = indicador_global,
+    label = paste("Taxa nacional: ", round(indicador_global, 3)),
+    hjust  = 1.1,
+    vjust  = -0.5,
+    color  = "black"
+  ) +
+  labs(
+    x     = "Região",
+    y     = "Taxa Saúde Mental",
+    title = "Taxa Saúde Mental por Região"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(t = 5, r = 20, b = 5, l = 5)
+  )+
+  guides(fill = FALSE)
+
+```
+
+```{r}
+# Exibindo o data frame resultante
+reg %>%
+  arrange(desc(ind_total_temas)) %>%
+  kable("html", caption = "Taxa Saúde Mental por Região") %>%
+  kable_styling(full_width = FALSE)
+```
+
+## Taxa Autocuidado
+
+### Gráfico
+
+```{r,fig.width=9, fig.height=5}
+# recalcula global
+indicador_global <- (sum(reg$autocuidado_de_pessoas_com_doe) / sum(reg$pop_total)) * 100000
+
+# maior valor para ajustar espaço
+max_val <- max(reg$ind_autocuidado_de_pessoas_com_doe, na.rm = TRUE)
+
+ggplot(reg, aes(
+    x = reorder(regiao, ind_autocuidado_de_pessoas_com_doe),
+    y = ind_autocuidado_de_pessoas_com_doe,
+    fill = regiao
+  )) +
+  geom_col() +           # fill fora do aes(), cor fixa azul
+  geom_text(
+    aes(label = round(ind_autocuidado_de_pessoas_com_doe, 1)),
+    hjust = -0.1,
+    size  = 3
+  ) +
+  coord_flip(clip = "off") +
+  scale_y_continuous(
+    limits = c(0, max_val * 1.15),
+    expand = expansion(mult = c(0, 0)),
+    labels = comma
+  ) +
+  geom_hline(
+    yintercept = indicador_global,
+    color      = "black",
+    linetype   = "dashed",
+    size       = 1
+  ) +
+  annotate(
+    "text",
+    x     = 0,
+    y     = indicador_global,
+    label = paste("Taxa nacional: ", round(indicador_global, 3)),
+    hjust  = 1.1,
+    vjust  = -0.5,
+    color  = "black"
+  ) +
+  labs(
+    x     = "Região",
+    y     = "Taxa Autocuidado",
+    title = "Taxa de Autocuidado por Região"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(t = 5, r = 20, b = 5, l = 5)
+  )+
+  guides(fill = FALSE)
+
+```
+
+```{r}
+# Exibindo o data frame resultante
+reg %>%
+  arrange(desc(ind_autocuidado_de_pessoas_com_doe)) %>%
+  kable("html", caption = "Taxa de Autocuidado por Região") %>%
+  kable_styling(full_width = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
