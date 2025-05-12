@@ -135,9 +135,9 @@ ggplot(top_10_mun, aes(
   ) +
   #scale_fill_brewer(palette = "Set2", name = "Regiao") +
   labs(
-    x     = "Municipio - UF",
+    x     = "Município - UF",
     y     = "Taxa total de temas",
-    title = "Os 10 Municipios com maior taxa"
+    title = "Os 10 Municípios com maior taxa"
   ) +
   theme_minimal() +
   theme(
