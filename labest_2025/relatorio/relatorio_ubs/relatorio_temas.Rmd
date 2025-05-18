@@ -95,7 +95,7 @@ mun <- mun %>%
     saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
     saude_mental, autocuidado_de_pessoas_com_doe,total_temas,
     starts_with("ind_")
-  )
+  ) 
 ```
 
 
@@ -157,8 +157,87 @@ ggplot(top_10_mun, aes(
 
 ```
 
+#  Histogramas
 
-#  Indicadores Estaduais
+
+## Total 
+
+```{r}
+#modificando as colunas com "ind" para que sejam numericas
+mun_hist <- mun %>%
+  mutate(
+    across(
+      .cols = starts_with("ind_"),
+      .fns = ~ as.numeric(.x)
+    )
+  ) 
+
+ggplot(mun_hist, aes(x = ind_total)) +
+  geom_histogram(colour = "black", fill = "steelblue") +
+  labs(title = "Histograma da taxa total",
+       x     = "Taxa",
+       y     = "Frequência") +
+  theme_minimal()
+
+
+```
+
+## Saúde Bucal
+
+```{r}
+ggplot(mun_hist, aes(x = ind_saude_bucal)) +
+  geom_histogram(colour = "black", fill = "steelblue") +
+  labs(title = "Histograma da taxa saúde bucal",
+       x     = "Taxa",
+       y     = "Frequência") +
+  theme_minimal()
+```
+
+## Alimentacao Saudavel 
+
+```{r}
+ggplot(mun_hist, aes(x = ind_alimentacao_saudavel)) +
+  geom_histogram( colour = "black", fill = "steelblue") +
+  labs(title = "Histograma da taxa alimentacao saudavel",
+       x     = "Taxa",
+       y     = "Frequência") +
+  theme_minimal()
+```
+
+## Saúde Sexual e Reprodutiva
+
+```{r}
+ggplot(mun_hist, aes(x = ind_saude_sexual_e_reprodutiva)) +
+  geom_histogram( colour = "black", fill = "steelblue") +
+  labs(title = "Histograma da taxa saúde sexual e reprodutiva",
+       x     = "Taxa",
+       y     = "Frequência") +
+  theme_minimal()
+```
+
+## Saúde Mental
+
+```{r}
+ggplot(mun_hist, aes(x = ind_saude_mental)) +
+  geom_histogram( colour = "black", fill = "steelblue") +
+  labs(title = "Histograma da taxa saúde mental",
+       x     = "Taxa",
+       y     = "Frequência") +
+  theme_minimal()
+```
+
+## Autocuidado
+
+```{r}
+ggplot(mun_hist, aes(x = ind_autocuidado_de_pessoas_com_doe)) +
+  geom_histogram( colour = "black", fill = "steelblue") +
+  labs(title = "Histograma da taxa autocuidado",
+       x     = "Taxa",
+       y     = "Frequência") +
+  theme_minimal()
+```
+
+# Indicadores Estaduais
 
 ## Cálculo
 ```{r}
