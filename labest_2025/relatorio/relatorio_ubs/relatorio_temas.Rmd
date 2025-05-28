@@ -34,75 +34,15 @@ Para cada unidade territorial, calculamos indicadores individuais dividindo o va
 
 ## Cálculo
 ```{r}
-# Leitura e seleção
-
-# temas: limpa e padroniza nomes e seleciona colunas de interesse
-temas <- read_excel("temas_municipio_2023.xlsx") %>%
-  janitor::clean_names() %>%
-  # seleciona variáveis de interesse já em snake_case
-  select(uf, ibge, municipio,
-         saude_bucal, alimentacao_saudavel,
-         saude_sexual_e_reprodutiva, saude_mental,
-         autocuidado_de_pessoas_com_doe)
-
-# pop: limpa nomes e renomeia conforme formato do usuário
-pop <- read_excel("pop_cadastrada_2023_denominador_temas_e_praticas.xls") %>%
-  janitor::clean_names() %>%
-  rename(
-    pop_total = qt_total_de_cadastros_limitado_pela_populacao_ibge
-  )
-
-# Junta e calcula indicadores
-mun <- temas %>%
-  left_join(pop, by = "ibge") %>%
-  drop_na() %>%
-  mutate(total_temas = saude_bucal + alimentacao_saudavel + saude_sexual_e_reprodutiva +
-                 saude_mental + autocuidado_de_pessoas_com_doe,
-    across(
-      .cols = c(saude_bucal, alimentacao_saudavel,
-                saude_sexual_e_reprodutiva, saude_mental,
-                autocuidado_de_pessoas_com_doe),
-      .fns = ~ (.x / pop_total)*100000, #a cada 100.000 habitantes
-      .names = "ind_{.col}"
-    ),
-    ind_total = (total_temas / pop_total)*100000 #a cada 100.000 habitantes
-  ) %>%
-  mutate(
-    across(
-      .cols = starts_with("ind_"),
-      .fns = ~ format(round(.x, 3), nsmall = 3)
-    )
-  ) 
-
-# Definição manual das regiões
-ufs_norte <- c("AC","AP","AM","PA","RO","RR","TO")
-ufs_nordeste <- c("MA","PI","CE","RN","PB","PE","AL","SE","BA")
-ufs_sudeste <- c("SP","RJ","ES","MG")
-ufs_sul <- c("PR","RS","SC")
-ufs_centro <- c("MT","MS","GO","DF")
-
-# Adicionando a coluna 'regiao' ao data frame 'mun'
-mun <- mun %>%
-  mutate(regiao = case_when(
-    uf.x %in% ufs_norte    ~ "Norte",
-    uf.x %in% ufs_nordeste ~ "Nordeste",
-    uf.x %in% ufs_sudeste  ~ "Sudeste",
-    uf.x %in% ufs_sul      ~ "Sul",
-    uf.x %in% ufs_centro   ~ "Centro-Oeste"
-  )) %>%
-  select(
-    regiao, uf = uf.x, municipio = municipio.x, ibge, pop_total,
-    saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
-    saude_mental, autocuidado_de_pessoas_com_doe,total_temas,
-    starts_with("ind_")
-  ) 
+#Para clareza do codigo eu fiz o tratamento em outro arquivo e salvei em excel
+mun = read_excel("taxas_temas_municipio.xlsx")
 ```
 
 
 ```{r}
 # Exibe tabela resumo municipal
 mun %>%
-  arrange(desc(ind_total)) %>%
+  arrange(desc(ind_total_temas)) %>%
   slice_head(n = 10) %>%
   kable("html", caption = "Taxas por Municipio") %>%
   kable_styling()
@@ -113,10 +53,10 @@ mun %>%
 ### Gráfico
 ```{r, fig.width=12, fig.height=6}
 top_10_mun <- mun %>%
-  slice_max(ind_total, n = 10) %>% arrange(desc(ind_total)) %>%
+  slice_max(ind_total_temas, n = 10) %>% arrange(desc(ind_total_temas)) %>%
   mutate(
     mun_uf    = paste0(municipio, " - ", uf),
-    ind_total = as.numeric(ind_total)
+    ind_total = as.numeric(ind_total_temas)
   )
 
 indicador_global <- (sum(mun$total_temas) / sum(mun$pop_total)) * 100000
@@ -157,6 +97,15 @@ ggplot(top_10_mun, aes(
 
 ```
 
+# Indicadores por porte do municipio
+
+
+```{r}
+
+```
+
+
+
 #  Histogramas
 
 
@@ -172,7 +121,7 @@ mun_hist <- mun %>%
     )
   ) 
 
-ggplot(mun_hist, aes(x = ind_total)) +
+ggplot(mun_hist, aes(x = ind_total_temas)) +
   geom_histogram(colour = "black", fill = "steelblue") +
   labs(title = "Histograma da taxa total",
        x     = "Taxa",
