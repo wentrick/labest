@@ -54,36 +54,42 @@ print(uf_regiao)
 
 
 ## Tratamento
-```{r preparacao-dados}
+
+```{r}
 df_escola_municipio <- escolas_adesao %>%
   group_by(municipio) %>%
   summarise(
-    escolas    = n(),
-    educandos  = sum(`QUANTIDADE EDUCANDOS`, na.rm = TRUE)
-  ) 
+    escolas   = n(),
+    educandos = sum(`QUANTIDADE EDUCANDOS`, na.rm = TRUE),
+    .groups   = "drop"
+  )
 
-df_atividades_municipio = atividade_municipio %>%
-  mutate(total_atividade = Educação + Saúde)
+df_atividades_municipio <- atividade_municipio %>%
+  rename(atividade_educacao = Educação, atividade_saude = Saúde) %>%
+  mutate(total_atividade = atividade_educacao + atividade_saude)
+
 ```
 
 # Indicadores
-```{r calculo-indicadores}
-df_final <- left_join(df_escola_municipio, df_atividades_municipio, by='municipio') %>%
-  rename(UF = Uf, atividade_educacao = Educação, atividade_saude = Saúde) %>%
+
+```{r}
+df_final <- left_join(df_escola_municipio, df_atividades_municipio, by = "municipio") %>%
+  rename(UF = Uf) %>%
   mutate(
-    razao_atividades_por_escola   = total_atividade / escolas,
-    razao_educando_atividade      = educandos / total_atividade
-  )
+    razao_atividades_por_escola = total_atividade / escolas,
+    razao_educando_atividade    = educandos / total_atividade
+  ) %>%
+  left_join(uf_regiao, by = "UF") %>%
+  select(regiao, UF, municipio, Ibge, escolas, educandos,
+         atividade_educacao, atividade_saude, total_atividade,
+         razao_atividades_por_escola, razao_educando_atividade)
 
-# Adicionando a coluna de regiao
-
-df_final = left_join(df_final,uf_regiao, by = 'UF') %>%
-  select(regiao,UF,municipio, Ibge, escolas, educandos, atividade_educacao, atividade_saude, total_atividade)
-
-# médias nacionais para referência
+# Médias nacionais para referência
 global_razao_atividade_por_escola <- sum(df_final$total_atividade, na.rm = TRUE) / sum(df_final$escolas, na.rm = TRUE)
 global_razao_educando_atividade  <- sum(df_final$educandos, na.rm = TRUE) / sum(df_final$total_atividade, na.rm = TRUE)
+
 ```
+
 
 # Resultados
 
@@ -91,141 +97,260 @@ global_razao_educando_atividade  <- sum(df_final$educandos, na.rm = TRUE) / sum(
 
 ### atividade por Escola
 
-```{r regiao-atividade, fig.width=10}
+```{r, fig.width=10}
 df_regiao_razao_atividade <- df_final %>%
-  drop_na() %>%
+  drop_na(razao_atividades_por_escola) %>%
   group_by(regiao) %>%
   summarise(
     total_escolas    = sum(escolas, na.rm = TRUE),
-    total_atividade = sum(total_atividade, na.rm = TRUE)
+    total_atividade  = sum(total_atividade, na.rm = TRUE),
+    .groups          = "drop"
   ) %>%
   mutate(razao_atividade_por_escola = total_atividade / total_escolas) %>%
   arrange(desc(razao_atividade_por_escola))
 
 ggplot(df_regiao_razao_atividade, aes(
-    x = razao_atividade_por_escola,
-    y = reorder(regiao, razao_atividade_por_escola),
+    x    = razao_atividade_por_escola,
+    y    = reorder(regiao, razao_atividade_por_escola),
     fill = regiao
   )) +
-  geom_col() +
-  geom_vline(xintercept = global_razao_atividade_por_escola, linetype = "dashed", size = 0.7) +
+  geom_col(show.legend = FALSE) +
+  geom_vline(xintercept = global_razao_atividade_por_escola,
+             linetype   = "dashed",
+             size       = 0.7,
+             color      = "black") +
   annotate("text",
-           x = 14,
-           y = 0.5,
-           label = paste0("Taxa nacional: ", round(global_razao_atividade_por_escola,2)),
-           angle = 0,
-           vjust = 0.5) +
-  geom_text(aes(label = round(razao_atividade_por_escola,2)), hjust = -0.1) +
-  labs(title = "Taxa por Região (atividades por escola)", x = "Taxa", y = "Região") +
-  theme_minimal() +
-  guides(fill = FALSE) #+
-  #scale_fill_brewer(palette = "Set2")
+           x     = global_razao_atividade_por_escola + 0.5,
+           y     = Inf,
+           label = paste0("Média Nacional: ", round(global_razao_atividade_por_escola, 2)),
+           hjust = 0,
+           vjust = 35,
+           color = "black",
+           size  = 4) +
+  geom_text(aes(label = round(razao_atividade_por_escola, 2)),
+            hjust = -0.1,
+            color = "gray20",
+            size  = 3.5) +
+  labs(
+    title    = "Taxa de Atividades por Escola por Região (2023-2024)",
+    subtitle = "Número médio de atividades realizadas por escola em cada região",
+    x        = "Atividades por Escola",
+    y        = "Região"
+  ) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.1))) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title      = element_text(face = "bold", size = 16),
+    plot.subtitle   = element_text(size = 12, color = "gray40"),
+    axis.title      = element_text(face = "bold"),
+    axis.text       = element_text(color = "gray20"),
+    plot.caption    = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin     = margin(t = 5, r = 20, b = 5, l = 5)
+  )
+
 ```
+
+
 ```{r tabela-regiao-atividade}
-df_regiao_razao_atividade %>% kable("html") %>% kable_styling()
+df_regiao_razao_atividade %>%
+  mutate(razao_atividade_por_escola = round(razao_atividade_por_escola, 2)) %>%
+  kable("html", caption = "Razão de Atividades por Escola por Região (2023-2024)") %>%
+  kable_styling(full_width = FALSE)
+
 ```
 
 ### Educandos por Atividade
 ```{r regiao-educandos,fig.width=10}
 df_regiao_razao_educandos <- df_final %>%
-  drop_na() %>%
+  drop_na(razao_educando_atividade) %>%
   group_by(regiao) %>%
   summarise(
     total_educandos = sum(educandos, na.rm = TRUE),
-    total_atividade = sum(total_atividade, na.rm = TRUE)
+    total_atividade = sum(total_atividade, na.rm = TRUE),
+    .groups         = "drop"
   ) %>%
   mutate(razao_educando_atividade = total_educandos / total_atividade) %>%
   arrange(desc(razao_educando_atividade))
 
 ggplot(df_regiao_razao_educandos, aes(
-    x = razao_educando_atividade,
-    y = reorder(regiao, razao_educando_atividade),
+    x    = razao_educando_atividade,
+    y    = reorder(regiao, razao_educando_atividade),
     fill = regiao
   )) +
-  geom_col() +
-  geom_vline(xintercept = global_razao_educando_atividade, linetype = "dashed", size = 0.7) +
+  geom_col(show.legend = FALSE) +
+  geom_vline(xintercept = global_razao_educando_atividade,
+             linetype   = "dashed",
+             size       = 0.7,
+             color      = "black") +
   annotate("text",
-           x = 25,
-           y = 0.5,
-           label = paste0("Taxa nacional: ", round(global_razao_educando_atividade,2)),
-           angle = 0,
-           vjust = 0.5) +
-  geom_text(aes(label = round(razao_educando_atividade,2)), hjust = -0.1) +
-  labs(title = "Taxa por Região (educandos por atividade)", x = "Taxa", y = "Região") +
-  theme_minimal() +
-  guides(fill = FALSE)
-  #scale_fill_brewer(palette = "Set2")
+           x     = global_razao_educando_atividade + 0.5,
+           y     = Inf,
+           label = paste0("Média Nacional: ", round(global_razao_educando_atividade, 2)),
+           hjust = 0,
+           vjust = 35,
+           color = "black",
+           size  = 4) +
+  geom_text(aes(label = round(razao_educando_atividade, 2)),
+            hjust = -0.1,
+            color = "gray20",
+            size  = 3.5) +
+  labs(
+    title    = "Taxa de Educandos por Atividade por Região (2023-2024)",
+    subtitle = "Número médio de educandos atendidos por atividade em cada região",
+    x        = "Educandos por Atividade",
+    y        = "Região"
+  ) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.1))) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title      = element_text(face = "bold", size = 16),
+    plot.subtitle   = element_text(size = 12, color = "gray40"),
+    axis.title      = element_text(face = "bold"),
+    axis.text       = element_text(color = "gray20"),
+    plot.caption    = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin     = margin(t = 5, r = 20, b = 5, l = 5)
+  )
+
 ```
 ```{r tabela-regiao-educandos}
-df_regiao_razao_educandos %>% kable("html") %>% kable_styling()
+df_regiao_razao_educandos %>%
+  mutate(razao_educando_atividade = round(razao_educando_atividade, 2)) %>%
+  kable("html", caption = "Razão de Educandos por Atividade por Região (2023-2024)") %>%
+  kable_styling(full_width = FALSE)
+
 ```
 
 ## Razões por UF
 ### atividade por Escola
 ```{r uf-atividade, fig.width=10}
 df_uf_razao_atividade <- df_final %>%
-  drop_na() %>%
-  group_by(UF) %>%
+  drop_na(razao_atividades_por_escola) %>%
+  group_by(regiao, UF) %>%
   summarise(
     total_escolas    = sum(escolas, na.rm = TRUE),
-    total_atividade = sum(total_atividade, na.rm = TRUE)
+    total_atividade  = sum(total_atividade, na.rm = TRUE),
+    .groups          = "drop"
   ) %>%
   mutate(razao_atividade_por_escola = total_atividade / total_escolas) %>%
   arrange(desc(razao_atividade_por_escola))
 
 ggplot(df_uf_razao_atividade, aes(
-    x = razao_atividade_por_escola,
-    y = reorder(UF, razao_atividade_por_escola),
+    x    = razao_atividade_por_escola,
+    y    = reorder(UF, razao_atividade_por_escola),
     fill = regiao
   )) +
   geom_col() +
-  geom_vline(xintercept = global_razao_atividade_por_escola, linetype = "dashed", size = 0.7) +
+  geom_vline(xintercept = global_razao_atividade_por_escola,
+             linetype   = "dashed",
+             size       = 0.7,
+             color      = "black") +
   annotate("text",
-           x = 14,
-           y = 0.5,
-           label = paste0("Taxa nacional: ", round(global_razao_atividade_por_escola,2)),
-           angle = 0,
-           vjust = -0.5) +
-  geom_text(aes(label = round(razao_atividade_por_escola,2)), hjust = -0.1) +
-  labs(title = "Taxa por UF (atividade por escola)", x = "Taxa", y = "UF") +
-  theme_minimal()
+           x     = global_razao_atividade_por_escola + 0.3,
+           y     = Inf,
+           label = paste0("Média Nacional: ", round(global_razao_atividade_por_escola, 2)),
+           hjust = 0,
+           vjust = 35,
+           color = "black",
+           size  = 3.5) +
+  geom_text(aes(label = round(razao_atividade_por_escola, 2)),
+            hjust = -0.1,
+            color = "gray20",
+            size  = 3) +
+  labs(
+    title    = "Taxa de Atividades por Escola por UF (2023-2024)",
+    subtitle = "Número médio de atividades realizadas por escola em cada Unidade Federativa",
+    x        = "Atividades por Escola",
+    y        = "UF",
+    fill     = "Região"
+  ) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.1))) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title      = element_text(face = "bold", size = 16),
+    plot.subtitle   = element_text(size = 12, color = "gray40"),
+    axis.title      = element_text(face = "bold"),
+    axis.text       = element_text(color = "gray20"),
+    legend.title    = element_text(face = "bold"),
+    legend.position = "right",
+    plot.caption    = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin     = margin(t = 5, r = 20, b = 5, l = 5)
+  )
+
 ```
+
 ```{r tabela-uf-atividade}
-df_uf_razao_atividade %>% kable("html") %>% kable_styling()
+df_uf_razao_atividade %>%
+  mutate(razao_atividade_por_escola = round(razao_atividade_por_escola, 2)) %>%
+  select(UF, regiao, razao_atividade_por_escola) %>%
+  kable("html", caption = "Razão de Atividades por Escola por UF (2023-2024)") %>%
+  kable_styling(full_width = FALSE)
+
 ```
 
 ### Educandos por atividade
 ```{r uf-educandos, fig.width=10}
 df_uf_razao_educandos <- df_final %>%
-  drop_na() %>%
-  group_by(UF) %>%
+  drop_na(razao_educando_atividade) %>%
+  group_by(regiao, UF) %>%
   summarise(
     total_educandos = sum(educandos, na.rm = TRUE),
-    total_atividade = sum(total_atividade, na.rm = TRUE)
+    total_atividade = sum(total_atividade, na.rm = TRUE),
+    .groups         = "drop"
   ) %>%
   mutate(razao_educando_atividade = total_educandos / total_atividade) %>%
   arrange(desc(razao_educando_atividade))
 
 ggplot(df_uf_razao_educandos, aes(
-    x = razao_educando_atividade,
-    y = reorder(UF, razao_educando_atividade),
+    x    = razao_educando_atividade,
+    y    = reorder(UF, razao_educando_atividade),
     fill = regiao
   )) +
   geom_col() +
-  geom_vline(xintercept = global_razao_educando_atividade, linetype = "dashed", size = 0.7) +
+  geom_vline(xintercept = global_razao_educando_atividade,
+             linetype   = "dashed",
+             size       = 0.7,
+             color      = "black") +
   annotate("text",
-           x = 32,
-           y = 0.5,
-           label = paste0("Taxa nacional: ", round(global_razao_educando_atividade,2)),
-           angle = 0,
-           vjust = -0.5) +
-  geom_text(aes(label = round(razao_educando_atividade,2)), hjust = -0.1) +
-  labs(title = "Taxa por UF (educandos por atividade)", x = "Taxa", y = "UF") +
-  theme_minimal()
+           x     = global_razao_educando_atividade + 0.3,
+           y     = Inf,
+           label = paste0("Média Nacional: ", round(global_razao_educando_atividade, 2)),
+           hjust = 0,
+           vjust = 35,
+           color = "black",
+           size  = 3.5) +
+  geom_text(aes(label = round(razao_educando_atividade, 2)),
+            hjust = -0.1,
+            color = "gray20",
+            size  = 3) +
+  labs(
+    title    = "Taxa de Educandos por Atividade por UF (2023-2024)",
+    subtitle = "Número médio de educandos atendidos por atividade em cada Unidade Federativa",
+    x        = "Educandos por Atividade",
+    y        = "UF",
+    fill     = "Região"
+  ) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.1))) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title      = element_text(face = "bold", size = 16),
+    plot.subtitle   = element_text(size = 12, color = "gray40"),
+    axis.title      = element_text(face = "bold"),
+    axis.text       = element_text(color = "gray20"),
+    legend.title    = element_text(face = "bold"),
+    legend.position = "right",
+    plot.caption    = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin     = margin(t = 5, r = 20, b = 5, l = 5)
+  )
+
 ```
 ```{r tabela-uf-educandos}
-df_uf_razao_educandos %>% kable("html") %>% kable_styling()
+df_uf_razao_educandos %>%
+  mutate(razao_educando_atividade = round(razao_educando_atividade, 2)) %>%
+  select(UF, regiao, razao_educando_atividade) %>%
+  kable("html", caption = "Razão de Educandos por Atividade por UF (2023-2024)") %>%
+  kable_styling(full_width = FALSE)
+
 ```
 
-# Conclusão
+
 

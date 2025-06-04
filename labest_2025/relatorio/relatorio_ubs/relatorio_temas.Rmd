@@ -34,8 +34,8 @@ Para cada unidade territorial, calculamos indicadores individuais dividindo o va
 
 ## Cálculo
 ```{r}
-#Para clareza do codigo eu fiz o tratamento em outro arquivo e salvei em excel
-mun = read_excel("taxas_temas_municipio.xlsx")
+# Para clareza do código, o tratamento foi feito em outro arquivo e salvo em Excel
+mun <- read_excel("taxas_temas_municipio.xlsx")
 ```
 
 
@@ -44,8 +44,9 @@ mun = read_excel("taxas_temas_municipio.xlsx")
 mun %>%
   arrange(desc(ind_total_temas)) %>%
   slice_head(n = 10) %>%
-  kable("html", caption = "Taxas por Municipio") %>%
+  kable("html", caption = "Municípios com Maior Taxa Total de Temas (2023)") %>%
   kable_styling()
+
 ```
 
 ## Taxa Total
@@ -97,13 +98,87 @@ ggplot(top_10_mun, aes(
 
 ```
 
+```{r, fig.width=12, fig.height=6}
+top_10_mun <- mun %>%
+  slice_max(ind_total_temas, n = 10) %>%
+  arrange(desc(ind_total_temas)) %>%
+  mutate(
+    mun_uf    = paste0(municipio, " - ", uf),
+    ind_total = as.numeric(ind_total_temas)
+  )
+
+indicador_global <- (sum(mun$total_temas) / sum(mun$pop_total)) * 100000
+max_ind <- max(top_10_mun$ind_total, na.rm = TRUE)
+
+ggplot(top_10_mun, aes(
+    x    = reorder(mun_uf, ind_total),
+    y    = ind_total,
+    fill = regiao
+  )) +
+  geom_col() +
+  geom_text(aes(label = round(ind_total, 1)), hjust = -0.1, size = 3.5) +
+  coord_flip(expand = FALSE) +
+  scale_fill_discrete(name = "Região") +
+  scale_y_continuous(
+    limits = c(0, max_ind * 1.2),
+    breaks = pretty_breaks(n = 7),
+    labels = comma
+  ) +
+  geom_hline(
+    yintercept = indicador_global,
+    color      = "black",
+    linetype   = "dashed",
+    size       = 1
+  ) +
+  annotate(
+    "text",
+    x     = 0,
+    y     = indicador_global,
+    label = paste0("Taxa Nacional (2023): ", round(indicador_global, 3)),
+    hjust = -0.1,
+    vjust = -0.5,
+    color = "black"
+  ) +
+  labs(
+    title    = "10 Municípios com Maior Taxa Total de Temas de Saúde (2023)",
+    subtitle = "Taxa por 100.000 habitantes",
+    x        = "Município - UF",
+    y        = "Taxa Total de Temas por 100.000 hab."
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "right",
+    plot.title      = element_text(face = "bold", size = 16),
+    plot.subtitle   = element_text(size = 12, color = "gray40"),
+    axis.title      = element_text(face = "bold"),
+    axis.text       = element_text(color = "gray20"),
+    plot.caption    = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin     = margin(t = 5, r = 20, b = 5, l = 5)
+  )
+```
+
+
+
 # Indicadores por porte do municipio
 
 
-```{r}
-
+```{r, fig.width=12, fig.height=6}
+# Boxplot do indicador total por porte
+ggplot(mun, aes(x = Porte, y = ind_total_temas)) +
+  geom_boxplot(fill = "#FF6F61", color = "black") +
+  labs(
+    title    = "Distribuição do Indicador Total de Temas por Porte do Município (2023)",
+    x        = "Porte do Município",
+    y        = "Taxa Total de Temas por 100.000 hab."
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 16),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60")
+  )
 ```
-
 
 
 #  Histogramas
@@ -112,22 +187,27 @@ ggplot(top_10_mun, aes(
 ## Total 
 
 ```{r}
-#modificando as colunas com "ind" para que sejam numericas
 mun_hist <- mun %>%
-  mutate(
-    across(
-      .cols = starts_with("ind_"),
-      .fns = ~ as.numeric(.x)
-    )
-  ) 
+  mutate(across(
+    .cols = starts_with("ind_"),
+    .fns = ~ as.numeric(.x)
+  ))
 
 ggplot(mun_hist, aes(x = ind_total_temas)) +
-  geom_histogram(colour = "black", fill = "steelblue") +
-  labs(title = "Histograma da taxa total",
-       x     = "Taxa",
-       y     = "Frequência") +
-  theme_minimal()
-
+  geom_histogram(color = "black", fill = "steelblue", bins = 30) +
+  labs(
+    title    = "Distribuição da Taxa Total de Temas entre Municípios (2023)",
+    x        = "Taxa Total de Temas por 100.000 hab.",
+    y        = "Número de Municípios"
+  ) +
+  scale_y_continuous(labels = scales::comma_format(big.mark = ".", decimal.mark = ",")) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title   = element_text(face = "bold", size = 16),
+    axis.title   = element_text(face = "bold"),
+    axis.text    = element_text(color = "gray20"),
+    plot.caption = element_text(size = 8, hjust = 1, color = "gray60")
+  )
 
 ```
 
@@ -135,88 +215,125 @@ ggplot(mun_hist, aes(x = ind_total_temas)) +
 
 ```{r}
 ggplot(mun_hist, aes(x = ind_saude_bucal)) +
-  geom_histogram(colour = "black", fill = "steelblue") +
-  labs(title = "Histograma da taxa saúde bucal",
-       x     = "Taxa",
-       y     = "Frequência") +
-  theme_minimal()
+  geom_histogram(color = "black", fill = "steelblue", bins = 30) +
+  labs(
+    title    = "Distribuição da Taxa de Saúde Bucal entre Municípios (2023)",
+    x        = "Taxa de Saúde Bucal por 100.000 hab.",
+    y        = "Número de Municípios"
+  ) +
+  scale_y_continuous(labels = scales::comma_format(big.mark = ".", decimal.mark = ",")) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title   = element_text(face = "bold", size = 16),
+    axis.title   = element_text(face = "bold"),
+    axis.text    = element_text(color = "gray20"),
+    plot.caption = element_text(size = 8, hjust = 1, color = "gray60")
+  )
 ```
 
 ## Alimentacao Saudavel 
 
 ```{r}
 ggplot(mun_hist, aes(x = ind_alimentacao_saudavel)) +
-  geom_histogram( colour = "black", fill = "steelblue") +
-  labs(title = "Histograma da taxa alimentacao saudavel",
-       x     = "Taxa",
-       y     = "Frequência") +
-  theme_minimal()
+  geom_histogram(color = "black", fill = "steelblue", bins = 30) +
+  labs(
+    title    = "Distribuição da Taxa de Alimentação Saudável entre Municípios (2023)",
+    x        = "Taxa de Alimentação Saudável por 100.000 hab.",
+    y        = "Número de Municípios"
+  ) +
+  scale_y_continuous(labels = scales::comma_format(big.mark = ".", decimal.mark = ",")) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title   = element_text(face = "bold", size = 16),
+    axis.title   = element_text(face = "bold"),
+    axis.text    = element_text(color = "gray20"),
+    plot.caption = element_text(size = 8, hjust = 1, color = "gray60")
+  )
 ```
 
 ## Saúde Sexual e Reprodutiva
 
 ```{r}
 ggplot(mun_hist, aes(x = ind_saude_sexual_e_reprodutiva)) +
-  geom_histogram( colour = "black", fill = "steelblue") +
-  labs(title = "Histograma da taxa saúde sexual e reprodutiva",
-       x     = "Taxa",
-       y     = "Frequência") +
-  theme_minimal()
+  geom_histogram(color = "black", fill = "steelblue", bins = 30) +
+  labs(
+    title    = "Distribuição da Taxa de Saúde Sexual e Reprodutiva entre Municípios (2023)",
+    x        = "Taxa de Saúde Sexual e Reprodutiva por 100.000 hab.",
+    y        = "Número de Municípios"
+  ) +
+  scale_y_continuous(labels = scales::comma_format(big.mark = ".", decimal.mark = ",")) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title   = element_text(face = "bold", size = 16),
+    axis.title   = element_text(face = "bold"),
+    axis.text    = element_text(color = "gray20"),
+    plot.caption = element_text(size = 8, hjust = 1, color = "gray60")
+  )
 ```
 
 ## Saúde Mental
 
 ```{r}
 ggplot(mun_hist, aes(x = ind_saude_mental)) +
-  geom_histogram( colour = "black", fill = "steelblue") +
-  labs(title = "Histograma da taxa saúde mental",
-       x     = "Taxa",
-       y     = "Frequência") +
-  theme_minimal()
+  geom_histogram(color = "black", fill = "steelblue", bins = 30) +
+  labs(
+    title    = "Distribuição da Taxa de Saúde Mental entre Municípios (2023)",
+    x        = "Taxa de Saúde Mental por 100.000 hab.",
+    y        = "Número de Municípios"
+  ) +
+  scale_y_continuous(labels = scales::comma_format(big.mark = ".", decimal.mark = ",")) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title   = element_text(face = "bold", size = 16),
+    axis.title   = element_text(face = "bold"),
+    axis.text    = element_text(color = "gray20"),
+    plot.caption = element_text(size = 8, hjust = 1, color = "gray60")
+  )
 ```
 
 ## Autocuidado
 
 ```{r}
 ggplot(mun_hist, aes(x = ind_autocuidado_de_pessoas_com_doe)) +
-  geom_histogram( colour = "black", fill = "steelblue") +
-  labs(title = "Histograma da taxa autocuidado",
-       x     = "Taxa",
-       y     = "Frequência") +
-  theme_minimal()
+  geom_histogram(color = "black", fill = "steelblue", bins = 30) +
+  labs(
+    title    = "Distribuição da Taxa de Autocuidado entre Municípios (2023)",
+    x        = "Taxa de Autocuidado por 100.000 hab.",
+    y        = "Número de Municípios"
+  ) +
+  scale_y_continuous(labels = scales::comma_format(big.mark = ".", decimal.mark = ",")) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title   = element_text(face = "bold", size = 16),
+    axis.title   = element_text(face = "bold"),
+    axis.text    = element_text(color = "gray20"),
+    plot.caption = element_text(size = 8, hjust = 1, color = "gray60")
+  )
 ```
 
 # Indicadores Estaduais
 
 ## Cálculo
+
 ```{r}
-
-# Supondo que 'mun' já esteja definido conforme o código anterior
-
-# Agrupando por UF e recalculando os valores de forma eficiente
+# Como 'mun' já contém a coluna 'regiao', basta agrupá-lo por 'regiao' e 'uf'
 uf_summary <- mun %>%
-  group_by(uf) %>%
+  group_by(regiao, uf) %>%
   summarise(
     across(c(pop_total, saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
-             saude_mental, autocuidado_de_pessoas_com_doe, total_temas), sum, na.rm = TRUE)
+             saude_mental, autocuidado_de_pessoas_com_doe, total_temas),
+           sum, na.rm = TRUE),
+    .groups = "drop"
   ) %>%
-  mutate(regiao = case_when(
-    uf %in% ufs_norte    ~ "Norte",
-    uf %in% ufs_nordeste ~ "Nordeste",
-    uf %in% ufs_sudeste  ~ "Sudeste",
-    uf %in% ufs_sul      ~ "Sul",
-    uf %in% ufs_centro   ~ "Centro-Oeste"
-  )) %>% 
-  select(regiao,uf,pop_total, saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
-             saude_mental, autocuidado_de_pessoas_com_doe, total_temas) %>%
+  # Calcula as taxas por 100.000 habitantes
   mutate(
     across(c(saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
              saude_mental, autocuidado_de_pessoas_com_doe, total_temas),
-           ~ (.x / pop_total)*100000,
+           ~ (.x / pop_total) * 100000,
            .names = "ind_{.col}")
   )
 
-# Exibindo o data frame resultante
+# Exibe o data frame resultante
 print(uf_summary)
 ```
 
@@ -224,18 +341,16 @@ print(uf_summary)
 ```{r}
 uf_summary %>%
   arrange(desc(ind_total_temas)) %>%
-  kable("html", caption = "Taxas por UF") %>%
+  kable("html", caption = "Taxas por UF (2023)") %>%
   kable_styling(full_width = FALSE)
 ```
 
 ## Taxa Total
 
 ### Gráfico
-```{r,fig.width=9, fig.height=5}
-# recalcula global
-indicador_global <- (sum(uf_summary$total_temas) / sum(uf_summary$pop_total)) * 100000
 
-# maior valor para ajuste de espaço
+```{r,fig.width=9, fig.height=5}
+indicador_global <- (sum(uf_summary$total_temas) / sum(uf_summary$pop_total)) * 100000
 max_val <- max(uf_summary$ind_total_temas, na.rm = TRUE)
 
 ggplot(uf_summary, aes(
@@ -244,12 +359,9 @@ ggplot(uf_summary, aes(
     fill = regiao
   )) +
   geom_col() +
-  geom_text(
-    aes(label = round(ind_total_temas, 1)),
-    hjust = -0.1,
-    size  = 3
-  ) +
+  geom_text(aes(label = round(ind_total_temas, 1)), hjust = -0.1, size = 3) +
   coord_flip(clip = "off") +
+  scale_fill_discrete(name = "Região") +
   scale_y_continuous(
     limits = c(0, max_val * 1.15),
     expand = expansion(mult = c(0, 0)),
@@ -265,16 +377,27 @@ ggplot(uf_summary, aes(
     "text",
     x     = 0,
     y     = indicador_global,
-    label = paste("Taxa nacional: ", round(indicador_global, 3)),
+    label = paste0("Taxa Nacional (2023): ", round(indicador_global, 3)),
     hjust = -0.5, vjust = -0.5,
     color = "black"
   ) +
   labs(
-    x     = "UF",
-    y     = "Taxa total de temas",
-    title = "Taxa por UF"
+    title    = "Taxa Total de Temas por UF (2023)",
+    subtitle = "Taxa por 100.000 habitantes",
+    x        = "Unidade Federativa (UF)",
+    y        = "Taxa Total de Temas por 100.000 hab."
   ) +
-  theme_minimal()
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 12, color = "gray40"),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    legend.title  = element_text(face = "bold"),
+    legend.position= "right",
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin   = margin(t = 5, r = 20, b = 5, l = 5)
+  )
 ```
 
 
@@ -282,10 +405,7 @@ ggplot(uf_summary, aes(
 
 ### Gráfico
 ```{r,fig.width=9, fig.height=5}
-# recalcula global
 indicador_global <- (sum(uf_summary$saude_bucal) / sum(uf_summary$pop_total)) * 100000
-
-# maior valor para ajuste de espaço
 max_val <- max(uf_summary$ind_saude_bucal, na.rm = TRUE)
 
 ggplot(uf_summary, aes(
@@ -294,12 +414,9 @@ ggplot(uf_summary, aes(
     fill = regiao
   )) +
   geom_col() +
-  geom_text(
-    aes(label = round(ind_saude_bucal, 1)),
-    hjust = -0.1,
-    size  = 3
-  ) +
+  geom_text(aes(label = round(ind_saude_bucal, 1)), hjust = -0.1, size = 3) +
   coord_flip(clip = "off") +
+  scale_fill_discrete(name = "Região") +
   scale_y_continuous(
     limits = c(0, max_val * 1.15),
     expand = expansion(mult = c(0, 0)),
@@ -315,16 +432,27 @@ ggplot(uf_summary, aes(
     "text",
     x     = 0,
     y     = indicador_global,
-    label = paste("Taxa nacional: ", round(indicador_global, 3)),
+    label = paste0("Taxa Nacional de Saúde Bucal (2023): ", round(indicador_global, 3)),
     hjust = -0.5, vjust = -0.5,
     color = "black"
   ) +
   labs(
-    x     = "UF",
-    y     = "Taxa Saúde Bucal",
-    title = "Taxa Saúde Bucal por UF"
+    title    = "Taxa de Saúde Bucal por UF (2023)",
+    subtitle = "Taxa por 100.000 habitantes",
+    x        = "Unidade Federativa (UF)",
+    y        = "Taxa de Saúde Bucal por 100.000 hab."
   ) +
-  theme_minimal()
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 12, color = "gray40"),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    legend.title  = element_text(face = "bold"),
+    legend.position= "right",
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin   = margin(t = 5, r = 20, b = 5, l = 5)
+  )
 ```
 
 ## Taxa Alimentacao Saudavel
@@ -333,10 +461,7 @@ ggplot(uf_summary, aes(
 
 ### Gráfico
 ```{r,fig.width=9, fig.height=5}
-# recalcula global
 indicador_global <- (sum(uf_summary$alimentacao_saudavel) / sum(uf_summary$pop_total)) * 100000
-
-# maior valor para ajuste de espaço
 max_val <- max(uf_summary$ind_alimentacao_saudavel, na.rm = TRUE)
 
 ggplot(uf_summary, aes(
@@ -345,12 +470,9 @@ ggplot(uf_summary, aes(
     fill = regiao
   )) +
   geom_col() +
-  geom_text(
-    aes(label = round(ind_alimentacao_saudavel, 1)),
-    hjust = -0.1,
-    size  = 3
-  ) +
+  geom_text(aes(label = round(ind_alimentacao_saudavel, 1)), hjust = -0.1, size = 3) +
   coord_flip(clip = "off") +
+  scale_fill_discrete(name = "Região") +
   scale_y_continuous(
     limits = c(0, max_val * 1.15),
     expand = expansion(mult = c(0, 0)),
@@ -366,26 +488,34 @@ ggplot(uf_summary, aes(
     "text",
     x     = 0,
     y     = indicador_global,
-    label = paste("Taxa nacional: ", round(indicador_global, 3)),
-    hjust = -0.5, vjust = -0.5,
+    label = paste0("Taxa Nacional de Alimentação Saudável (2023): ", round(indicador_global, 3)),
+    hjust = -0.2, vjust = -0.5,
     color = "black"
   ) +
   labs(
-    x     = "UF",
-    y     = "Taxa Alimentacao Saudavel",
-    title = "Taxa Alimentacao Saudavel por UF"
+    title    = "Taxa de Alimentação Saudável por UF (2023)",
+    subtitle = "Taxa por 100.000 habitantes",
+    x        = "Unidade Federativa (UF)",
+    y        = "Taxa de Alimentação Saudável por 100.000 hab."
   ) +
-  theme_minimal()
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 12, color = "gray40"),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    legend.title  = element_text(face = "bold"),
+    legend.position= "right",
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin   = margin(t = 5, r = 20, b = 5, l = 5)
+  )
 ```
 
 ## Taxa Saúde Sexual e Reprodutiva
 
 ### Gráfico
 ```{r,fig.width=9, fig.height=5}
-# recalcula global
 indicador_global <- (sum(uf_summary$saude_sexual_e_reprodutiva) / sum(uf_summary$pop_total)) * 100000
-
-# maior valor para ajuste de espaço
 max_val <- max(uf_summary$ind_saude_sexual_e_reprodutiva, na.rm = TRUE)
 
 ggplot(uf_summary, aes(
@@ -394,12 +524,9 @@ ggplot(uf_summary, aes(
     fill = regiao
   )) +
   geom_col() +
-  geom_text(
-    aes(label = round(ind_saude_sexual_e_reprodutiva, 1)),
-    hjust = -0.1,
-    size  = 3
-  ) +
+  geom_text(aes(label = round(ind_saude_sexual_e_reprodutiva, 1)), hjust = -0.1, size = 3) +
   coord_flip(clip = "off") +
+  scale_fill_discrete(name = "Região") +
   scale_y_continuous(
     limits = c(0, max_val * 1.15),
     expand = expansion(mult = c(0, 0)),
@@ -415,16 +542,27 @@ ggplot(uf_summary, aes(
     "text",
     x     = 0,
     y     = indicador_global,
-    label = paste("Taxa nacional: ", round(indicador_global, 3)),
-    hjust = -0.5, vjust = -0.5,
+    label = paste0("Taxa Nacional de Saúde Sexual e Reprodutiva (2023): ", round(indicador_global, 3)),
+    hjust = -0.2, vjust = -0.5,
     color = "black"
   ) +
   labs(
-    x     = "UF",
-    y     = "Taxa Saúde Sexual e Reprodutiva",
-    title = "Taxa Saúde Sexual e Reprodutiva por UF"
+    title    = "Taxa de Saúde Sexual e Reprodutiva por UF (2023)",
+    subtitle = "Taxa por 100.000 habitantes",
+    x        = "Unidade Federativa (UF)",
+    y        = "Taxa de Saúde Sexual e Reprodutiva por 100.000 hab."
   ) +
-  theme_minimal()
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 12, color = "gray40"),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    legend.title  = element_text(face = "bold"),
+    legend.position= "right",
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin   = margin(t = 5, r = 20, b = 5, l = 5)
+  )
 ```
 
 ## Taxa Saúde Mental
@@ -433,10 +571,7 @@ ggplot(uf_summary, aes(
 
 ### Gráfico
 ```{r,fig.width=9, fig.height=5}
-# recalcula global
 indicador_global <- (sum(uf_summary$saude_mental) / sum(uf_summary$pop_total)) * 100000
-
-# maior valor para ajuste de espaço
 max_val <- max(uf_summary$ind_saude_mental, na.rm = TRUE)
 
 ggplot(uf_summary, aes(
@@ -445,12 +580,9 @@ ggplot(uf_summary, aes(
     fill = regiao
   )) +
   geom_col() +
-  geom_text(
-    aes(label = round(ind_saude_mental, 1)),
-    hjust = -0.1,
-    size  = 3
-  ) +
+  geom_text(aes(label = round(ind_saude_mental, 1)), hjust = -0.1, size = 3) +
   coord_flip(clip = "off") +
+  scale_fill_discrete(name = "Região") +
   scale_y_continuous(
     limits = c(0, max_val * 1.15),
     expand = expansion(mult = c(0, 0)),
@@ -466,16 +598,27 @@ ggplot(uf_summary, aes(
     "text",
     x     = 0,
     y     = indicador_global,
-    label = paste("Taxa nacional: ", round(indicador_global, 3)),
+    label = paste0("Taxa Nacional de Saúde Mental (2023): ", round(indicador_global, 3)),
     hjust = -0.5, vjust = -0.5,
     color = "black"
   ) +
   labs(
-    x     = "UF",
-    y     = "Taxa Saúde Mental",
-    title = "Taxa Saúde Mental por UF"
+    title    = "Taxa de Saúde Mental por UF (2023)",
+    subtitle = "Taxa por 100.000 habitantes",
+    x        = "Unidade Federativa (UF)",
+    y        = "Taxa de Saúde Mental por 100.000 hab."
   ) +
-  theme_minimal()
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 12, color = "gray40"),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    legend.title  = element_text(face = "bold"),
+    legend.position= "right",
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin   = margin(t = 5, r = 20, b = 5, l = 5)
+  )
 ```
 
 ## Taxa Autocuidado
@@ -484,10 +627,7 @@ ggplot(uf_summary, aes(
 
 ### Gráfico
 ```{r,fig.width=9, fig.height=5}
-# recalcula global
 indicador_global <- (sum(uf_summary$autocuidado_de_pessoas_com_doe) / sum(uf_summary$pop_total)) * 100000
-
-# maior valor para ajuste de espaço
 max_val <- max(uf_summary$ind_autocuidado_de_pessoas_com_doe, na.rm = TRUE)
 
 ggplot(uf_summary, aes(
@@ -496,12 +636,9 @@ ggplot(uf_summary, aes(
     fill = regiao
   )) +
   geom_col() +
-  geom_text(
-    aes(label = round(ind_autocuidado_de_pessoas_com_doe, 1)),
-    hjust = -0.1,
-    size  = 3
-  ) +
+  geom_text(aes(label = round(ind_autocuidado_de_pessoas_com_doe, 1)), hjust = -0.1, size = 3) +
   coord_flip(clip = "off") +
+  scale_fill_discrete(name = "Região") +
   scale_y_continuous(
     limits = c(0, max_val * 1.15),
     expand = expansion(mult = c(0, 0)),
@@ -517,48 +654,51 @@ ggplot(uf_summary, aes(
     "text",
     x     = 0,
     y     = indicador_global,
-    label = paste("Taxa nacional: ", round(indicador_global, 3)),
+    label = paste0("Taxa Nacional de Autocuidado (2023): ", round(indicador_global, 3)),
     hjust = -0.5, vjust = -0.5,
     color = "black"
   ) +
   labs(
-    x     = "UF",
-    y     = "Taxa Autocuidado",
-    title = "Taxa Autocuidado por UF"
+    title    = "Taxa de Autocuidado por UF (2023)",
+    subtitle = "Taxa por 100.000 habitantes",
+    x        = "Unidade Federativa (UF)",
+    y        = "Taxa de Autocuidado por 100.000 hab."
   ) +
-  theme_minimal()
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 12, color = "gray40"),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    legend.title  = element_text(face = "bold"),
+    legend.position= "right",
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin   = margin(t = 5, r = 20, b = 5, l = 5)
+  )
 ```
-
-
-
-
-
-
-
-
-
-
-
 
 
 #  Indicadores Regionais
 
 ##  Cálculo
-```{r}
 
-# Agrupando por região e recalculando os valores de forma eficiente
+```{r}
 reg <- mun %>%
   group_by(regiao) %>%
   summarise(
     across(c(pop_total, saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
-             saude_mental, autocuidado_de_pessoas_com_doe, total_temas), sum, na.rm = TRUE)
+             saude_mental, autocuidado_de_pessoas_com_doe, total_temas),
+           sum, na.rm = TRUE)
   ) %>%
   mutate(
     across(c(saude_bucal, alimentacao_saudavel, saude_sexual_e_reprodutiva,
              saude_mental, autocuidado_de_pessoas_com_doe, total_temas),
-           ~ (.x / pop_total)*100000,
+           ~ (.x / pop_total) * 100000,
            .names = "ind_{.col}")
   )
+
+# Exibindo o data frame resultante
+print(reg)
 ```
 
 
@@ -566,24 +706,18 @@ reg <- mun %>%
 
 ### Gráfico
 ```{r,fig.width=9, fig.height=5}
-# recalcula global
 indicador_global <- (sum(reg$total_temas) / sum(reg$pop_total)) * 100000
-
-# maior valor para ajustar espaço
 max_val <- max(reg$ind_total_temas, na.rm = TRUE)
 
 ggplot(reg, aes(
-    x = reorder(regiao, ind_total_temas),
-    y = ind_total_temas,
+    x    = reorder(regiao, ind_total_temas),
+    y    = ind_total_temas,
     fill = regiao
   )) +
-  geom_col() +           # fill fora do aes(), cor fixa azul
-  geom_text(
-    aes(label = round(ind_total_temas, 1)),
-    hjust = -0.1,
-    size  = 3
-  ) +
+  geom_col() +
+  geom_text(aes(label = round(ind_total_temas, 1)), hjust = -0.1, size = 3) +
   coord_flip(clip = "off") +
+  scale_fill_discrete(guide = FALSE) +
   scale_y_continuous(
     limits = c(0, max_val * 1.15),
     expand = expansion(mult = c(0, 0)),
@@ -599,31 +733,35 @@ ggplot(reg, aes(
     "text",
     x     = 0,
     y     = indicador_global,
-    label = paste("Taxa nacional: ", round(indicador_global, 3)),
-    hjust  = 1.1,
-    vjust  = -0.5,
-    color  = "black"
+    label = paste0("Taxa Nacional (2023): ", round(indicador_global, 3)),
+    hjust = 1.1, vjust = -0.5,
+    color = "black"
   ) +
   labs(
-    x     = "UF",
-    y     = "Taxa total de temas",
-    title = "Taxa por Região"
+    title    = "Taxa Total de Temas por Região (2023)",
+    subtitle = "Taxa por 100.000 habitantes",
+    x        = "Região",
+    y        = "Taxa Total de Temas por 100.000 hab."
   ) +
-  theme_minimal() +
+  theme_minimal(base_size = 12) +
   theme(
-    plot.margin = margin(t = 5, r = 20, b = 5, l = 5)
-  )+
-  guides(fill = FALSE)
+    plot.title    = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 12, color = "gray40"),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin   = margin(t = 5, r = 20, b = 5, l = 5)
+  )
 
 ```
 
 ```{r}
-# Exibindo o data frame resultante
 reg %>%
   arrange(desc(ind_total_temas)) %>%
-  kable("html", caption = "Indicadores por Região") %>%
+  kable("html", caption = "Indicadores por Região (2023)") %>%
   kable_styling(full_width = FALSE)
 ```
+
 
 
 ## Taxa Saúde Bucal
@@ -631,24 +769,18 @@ reg %>%
 ### Gráfico
 
 ```{r,fig.width=9, fig.height=5}
-# recalcula global
 indicador_global <- (sum(reg$saude_bucal) / sum(reg$pop_total)) * 100000
-
-# maior valor para ajustar espaço
 max_val <- max(reg$ind_saude_bucal, na.rm = TRUE)
 
 ggplot(reg, aes(
-    x = reorder(regiao, ind_saude_bucal),
-    y = ind_saude_bucal,
+    x    = reorder(regiao, ind_saude_bucal),
+    y    = ind_saude_bucal,
     fill = regiao
   )) +
-  geom_col() +           # fill fora do aes(), cor fixa azul
-  geom_text(
-    aes(label = round(ind_saude_bucal, 1)),
-    hjust = -0.1,
-    size  = 3
-  ) +
+  geom_col() +
+  geom_text(aes(label = round(ind_saude_bucal, 1)), hjust = -0.1, size = 3) +
   coord_flip(clip = "off") +
+  scale_fill_discrete(guide = FALSE) +
   scale_y_continuous(
     limits = c(0, max_val * 1.15),
     expand = expansion(mult = c(0, 0)),
@@ -664,30 +796,26 @@ ggplot(reg, aes(
     "text",
     x     = 0,
     y     = indicador_global,
-    label = paste("Taxa nacional: ", round(indicador_global, 3)),
-    hjust  = 1.1,
-    vjust  = -0.5,
-    color  = "black"
+    label = paste0("Taxa Nacional de Saúde Bucal (2023): ", round(indicador_global, 3)),
+    hjust = 1.1, vjust = -0.5,
+    color = "black"
   ) +
   labs(
-    x     = "Região",
-    y     = "Taxa Saúde Bucal",
-    title = "Taxa Saúde Bucal por Região"
+    title    = "Taxa de Saúde Bucal por Região (2023)",
+    subtitle = "Taxa por 100.000 habitantes",
+    x        = "Região",
+    y        = "Taxa de Saúde Bucal por 100.000 hab."
   ) +
-  theme_minimal() +
+  theme_minimal(base_size = 12) +
   theme(
-    plot.margin = margin(t = 5, r = 20, b = 5, l = 5)
-  )+
-  guides(fill = FALSE)
+    plot.title    = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 12, color = "gray40"),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin   = margin(t = 5, r = 20, b = 5, l = 5)
+  )
 
-```
-
-```{r}
-# Exibindo o data frame resultante
-reg %>%
-  arrange(desc(ind_total_temas)) %>%
-  kable("html", caption = "Taxa Saúde Bucal por Região") %>%
-  kable_styling(full_width = FALSE)
 ```
 
 ## Taxa Alimentacao Saudavel
@@ -695,24 +823,18 @@ reg %>%
 ### Gráfico
 
 ```{r,fig.width=9, fig.height=5}
-# recalcula global
 indicador_global <- (sum(reg$alimentacao_saudavel) / sum(reg$pop_total)) * 100000
-
-# maior valor para ajustar espaço
 max_val <- max(reg$ind_alimentacao_saudavel, na.rm = TRUE)
 
 ggplot(reg, aes(
-    x = reorder(regiao, ind_alimentacao_saudavel),
-    y = ind_alimentacao_saudavel,
+    x    = reorder(regiao, ind_alimentacao_saudavel),
+    y    = ind_alimentacao_saudavel,
     fill = regiao
   )) +
-  geom_col() +           # fill fora do aes(), cor fixa azul
-  geom_text(
-    aes(label = round(ind_alimentacao_saudavel, 1)),
-    hjust = -0.1,
-    size  = 3
-  ) +
+  geom_col() +
+  geom_text(aes(label = round(ind_alimentacao_saudavel, 1)), hjust = -0.1, size = 3) +
   coord_flip(clip = "off") +
+  scale_fill_discrete(guide = FALSE) +
   scale_y_continuous(
     limits = c(0, max_val * 1.15),
     expand = expansion(mult = c(0, 0)),
@@ -728,55 +850,46 @@ ggplot(reg, aes(
     "text",
     x     = 0,
     y     = indicador_global,
-    label = paste("Taxa nacional: ", round(indicador_global, 3)),
-    hjust  = 1.1,
-    vjust  = -0.5,
-    color  = "black"
+    label = paste0("Taxa Nacional de Alimentação Saudável (2023): ", round(indicador_global, 3)),
+    hjust = 1.1, vjust = -0.5,
+    color = "black"
   ) +
   labs(
-    x     = "Região",
-    y     = "Taxa Alimentacao Saudavel",
-    title = "Taxa Alimentacao Saudavel por Região"
+    title    = "Taxa de Alimentação Saudável por Região (2023)",
+    subtitle = "Taxa por 100.000 habitantes",
+    x        = "Região",
+    y        = "Taxa de Alimentação Saudável por 100.000 hab."
   ) +
-  theme_minimal() +
+  theme_minimal(base_size = 12) +
   theme(
-    plot.margin = margin(t = 5, r = 20, b = 5, l = 5)
-  )+
-  guides(fill = FALSE)
+    plot.title    = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 12, color = "gray40"),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin   = margin(t = 5, r = 20, b = 5, l = 5)
+  )
 
 ```
 
-```{r}
-# Exibindo o data frame resultante
-reg %>%
-  arrange(desc(ind_total_temas)) %>%
-  kable("html", caption = "Indicadores por Região") %>%
-  kable_styling(full_width = FALSE)
-```
 
 ## Taxa Saúde Sexual e Reprodutiva
 
 ### Gráfico
 
 ```{r,fig.width=9, fig.height=5}
-# recalcula global
 indicador_global <- (sum(reg$saude_sexual_e_reprodutiva) / sum(reg$pop_total)) * 100000
-
-# maior valor para ajustar espaço
 max_val <- max(reg$ind_saude_sexual_e_reprodutiva, na.rm = TRUE)
 
 ggplot(reg, aes(
-    x = reorder(regiao, ind_saude_sexual_e_reprodutiva),
-    y = ind_saude_sexual_e_reprodutiva,
+    x    = reorder(regiao, ind_saude_sexual_e_reprodutiva),
+    y    = ind_saude_sexual_e_reprodutiva,
     fill = regiao
   )) +
-  geom_col() +           # fill fora do aes(), cor fixa azul
-  geom_text(
-    aes(label = round(ind_saude_sexual_e_reprodutiva, 1)),
-    hjust = -0.1,
-    size  = 3
-  ) +
+  geom_col() +
+  geom_text(aes(label = round(ind_saude_sexual_e_reprodutiva, 1)), hjust = -0.1, size = 3) +
   coord_flip(clip = "off") +
+  scale_fill_discrete(guide = FALSE) +
   scale_y_continuous(
     limits = c(0, max_val * 1.15),
     expand = expansion(mult = c(0, 0)),
@@ -792,55 +905,46 @@ ggplot(reg, aes(
     "text",
     x     = 0,
     y     = indicador_global,
-    label = paste("Taxa nacional: ", round(indicador_global, 3)),
-    hjust  = 1.1,
-    vjust  = -0.5,
-    color  = "black"
+    label = paste0("Taxa Nacional de Saúde Sexual e Reprodutiva (2023): ", round(indicador_global, 3)),
+    hjust = 1.1, vjust = -0.5,
+    color = "black"
   ) +
   labs(
-    x     = "Região",
-    y     = "Taxa Saúde Sexual e Reprodutiva",
-    title = "Taxa Saúde Sexual e Reprodutiva por Região"
+    title    = "Taxa de Saúde Sexual e Reprodutiva por Região (2023)",
+    subtitle = "Taxa por 100.000 habitantes",
+    x        = "Região",
+    y        = "Taxa de Saúde Sexual e Reprodutiva por 100.000 hab."
   ) +
-  theme_minimal() +
+  theme_minimal(base_size = 12) +
   theme(
-    plot.margin = margin(t = 5, r = 20, b = 5, l = 5)
-  )+
-  guides(fill = FALSE)
+    plot.title    = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 12, color = "gray40"),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin   = margin(t = 5, r = 20, b = 5, l = 5)
+  )
 
 ```
 
-```{r}
-# Exibindo o data frame resultante
-reg %>%
-  arrange(desc(ind_total_temas)) %>%
-  kable("html", caption = "Taxa Saúde Sexual e Reprodutiva por Região") %>%
-  kable_styling(full_width = FALSE)
-```
 
 ## Taxa Saúde Mental
 
 ### Gráfico
 
 ```{r,fig.width=9, fig.height=5}
-# recalcula global
 indicador_global <- (sum(reg$saude_mental) / sum(reg$pop_total)) * 100000
-
-# maior valor para ajustar espaço
 max_val <- max(reg$ind_saude_mental, na.rm = TRUE)
 
 ggplot(reg, aes(
-    x = reorder(regiao, ind_saude_mental),
-    y = ind_saude_mental,
+    x    = reorder(regiao, ind_saude_mental),
+    y    = ind_saude_mental,
     fill = regiao
   )) +
-  geom_col() +           # fill fora do aes(), cor fixa azul
-  geom_text(
-    aes(label = round(ind_saude_mental, 1)),
-    hjust = -0.1,
-    size  = 3
-  ) +
+  geom_col() +
+  geom_text(aes(label = round(ind_saude_mental, 1)), hjust = -0.1, size = 3) +
   coord_flip(clip = "off") +
+  scale_fill_discrete(guide = FALSE) +
   scale_y_continuous(
     limits = c(0, max_val * 1.15),
     expand = expansion(mult = c(0, 0)),
@@ -856,30 +960,25 @@ ggplot(reg, aes(
     "text",
     x     = 0,
     y     = indicador_global,
-    label = paste("Taxa nacional: ", round(indicador_global, 3)),
-    hjust  = 1.1,
-    vjust  = -0.5,
-    color  = "black"
+    label = paste0("Taxa Nacional de Saúde Mental (2023): ", round(indicador_global, 3)),
+    hjust = 1.1, vjust = -0.5,
+    color = "black"
   ) +
   labs(
-    x     = "Região",
-    y     = "Taxa Saúde Mental",
-    title = "Taxa Saúde Mental por Região"
+    title    = "Taxa de Saúde Mental por Região (2023)",
+    subtitle = "Taxa por 100.000 habitantes",
+    x        = "Região",
+    y        = "Taxa de Saúde Mental por 100.000 hab."
   ) +
-  theme_minimal() +
+  theme_minimal(base_size = 12) +
   theme(
-    plot.margin = margin(t = 5, r = 20, b = 5, l = 5)
-  )+
-  guides(fill = FALSE)
-
-```
-
-```{r}
-# Exibindo o data frame resultante
-reg %>%
-  arrange(desc(ind_total_temas)) %>%
-  kable("html", caption = "Taxa Saúde Mental por Região") %>%
-  kable_styling(full_width = FALSE)
+    plot.title    = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 12, color = "gray40"),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin   = margin(t = 5, r = 20, b = 5, l = 5)
+  )
 ```
 
 ## Taxa Autocuidado
@@ -887,24 +986,18 @@ reg %>%
 ### Gráfico
 
 ```{r,fig.width=9, fig.height=5}
-# recalcula global
 indicador_global <- (sum(reg$autocuidado_de_pessoas_com_doe) / sum(reg$pop_total)) * 100000
-
-# maior valor para ajustar espaço
 max_val <- max(reg$ind_autocuidado_de_pessoas_com_doe, na.rm = TRUE)
 
 ggplot(reg, aes(
-    x = reorder(regiao, ind_autocuidado_de_pessoas_com_doe),
-    y = ind_autocuidado_de_pessoas_com_doe,
+    x    = reorder(regiao, ind_autocuidado_de_pessoas_com_doe),
+    y    = ind_autocuidado_de_pessoas_com_doe,
     fill = regiao
   )) +
-  geom_col() +           # fill fora do aes(), cor fixa azul
-  geom_text(
-    aes(label = round(ind_autocuidado_de_pessoas_com_doe, 1)),
-    hjust = -0.1,
-    size  = 3
-  ) +
+  geom_col() +
+  geom_text(aes(label = round(ind_autocuidado_de_pessoas_com_doe, 1)), hjust = -0.1, size = 3) +
   coord_flip(clip = "off") +
+  scale_fill_discrete(guide = FALSE) +
   scale_y_continuous(
     limits = c(0, max_val * 1.15),
     expand = expansion(mult = c(0, 0)),
@@ -920,31 +1013,29 @@ ggplot(reg, aes(
     "text",
     x     = 0,
     y     = indicador_global,
-    label = paste("Taxa nacional: ", round(indicador_global, 3)),
-    hjust  = 1.1,
-    vjust  = -0.5,
-    color  = "black"
+    label = paste0("Taxa Nacional de Autocuidado (2023): ", round(indicador_global, 3)),
+    hjust = 1.1, vjust = -0.5,
+    color = "black"
   ) +
   labs(
-    x     = "Região",
-    y     = "Taxa Autocuidado",
-    title = "Taxa de Autocuidado por Região"
+    title    = "Taxa de Autocuidado por Região (2023)",
+    subtitle = "Taxa por 100.000 habitantes",
+    x        = "Região",
+    y        = "Taxa de Autocuidado por 100.000 hab."
   ) +
-  theme_minimal() +
+  theme_minimal(base_size = 12) +
   theme(
-    plot.margin = margin(t = 5, r = 20, b = 5, l = 5)
-  )+
-  guides(fill = FALSE)
+    plot.title    = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 12, color = "gray40"),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin   = margin(t = 5, r = 20, b = 5, l = 5)
+  )
 
 ```
 
-```{r}
-# Exibindo o data frame resultante
-reg %>%
-  arrange(desc(ind_autocuidado_de_pessoas_com_doe)) %>%
-  kable("html", caption = "Taxa de Autocuidado por Região") %>%
-  kable_styling(full_width = FALSE)
-```
+
 
 
 
