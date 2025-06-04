@@ -22,68 +22,15 @@ knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
 Este relatório apresenta indicadores escolares referentes ao período de 2023-2024, incluindo número de escolas, educandos, atividade.......
 
 # Dados
-## Leitura
-```{r leitura-dados}
-atividade_municipio <- read_excel("atividades_pse_2023_numerador.xlsx")  %>% #Numerador (Numero de atividades em escolas por municipio)
-  rename(municipio = Municipio) 
 
-escolas_adesao <- read_excel("escolas_pse_adesao_2023_2024_denominador.xlsx") %>% #Denominador (Numero de escolas por municipio)
-  rename(municipio = MUNICIPIO) 
-
-```
-## Criando DataFrame das Regioes e UFs
+O tratamento dos dados foi feito em outro codigo para que fique mais organizado
 
 ```{r}
-# Criar vetor com as UFs e Regiões correspondentes
-uf <- c("AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", 
-        "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", 
-        "SE", "SP", "TO")
-
-regiao <- c("Norte", "Nordeste", "Norte", "Norte", "Nordeste", "Nordeste", "Centro-Oeste", 
-            "Sudeste", "Centro-Oeste", "Nordeste", "Centro-Oeste", "Centro-Oeste", 
-            "Sudeste", "Norte", "Nordeste", "Sul", "Nordeste", "Nordeste", "Sudeste", 
-            "Nordeste", "Sul", "Norte", "Norte", "Sul", "Nordeste", "Sudeste", "Norte")
-
-# Criar o data frame
-uf_regiao <- data.frame(UF = uf, regiao = regiao, stringsAsFactors = FALSE)
-
-# Visualizar o data frame
-print(uf_regiao)
-
+df_final = taxas_atividades_municipio <- read_excel("taxas_atividades_municipio.xlsx")
 ```
 
 
-## Tratamento
-
 ```{r}
-df_escola_municipio <- escolas_adesao %>%
-  group_by(municipio) %>%
-  summarise(
-    escolas   = n(),
-    educandos = sum(`QUANTIDADE EDUCANDOS`, na.rm = TRUE),
-    .groups   = "drop"
-  )
-
-df_atividades_municipio <- atividade_municipio %>%
-  rename(atividade_educacao = Educação, atividade_saude = Saúde) %>%
-  mutate(total_atividade = atividade_educacao + atividade_saude)
-
-```
-
-# Indicadores
-
-```{r}
-df_final <- left_join(df_escola_municipio, df_atividades_municipio, by = "municipio") %>%
-  rename(UF = Uf) %>%
-  mutate(
-    razao_atividades_por_escola = total_atividade / escolas,
-    razao_educando_atividade    = educandos / total_atividade
-  ) %>%
-  left_join(uf_regiao, by = "UF") %>%
-  select(regiao, UF, municipio, Ibge, escolas, educandos,
-         atividade_educacao, atividade_saude, total_atividade,
-         razao_atividades_por_escola, razao_educando_atividade)
-
 # Médias nacionais para referência
 global_razao_atividade_por_escola <- sum(df_final$total_atividade, na.rm = TRUE) / sum(df_final$escolas, na.rm = TRUE)
 global_razao_educando_atividade  <- sum(df_final$educandos, na.rm = TRUE) / sum(df_final$total_atividade, na.rm = TRUE)
@@ -221,7 +168,9 @@ df_regiao_razao_educandos %>%
 ```
 
 ## Razões por UF
+
 ### atividade por Escola
+
 ```{r uf-atividade, fig.width=10}
 df_uf_razao_atividade <- df_final %>%
   drop_na(razao_atividades_por_escola) %>%
@@ -352,5 +301,175 @@ df_uf_razao_educandos %>%
 
 ```
 
+## Razões por Porte
 
+### atividade por Escola
+
+```{r, fig.width=10}
+df_porte_razao_atividade <- df_final %>%
+  drop_na(razao_atividades_por_escola) %>%
+  group_by(porte) %>%
+  summarise(
+    total_escolas    = sum(escolas, na.rm = TRUE),
+    total_atividade  = sum(total_atividade, na.rm = TRUE),
+    .groups          = "drop"
+  ) %>%
+  mutate(razao_atividade_por_escola = total_atividade / total_escolas) %>%
+  arrange(desc(razao_atividade_por_escola))
+
+ggplot(df_porte_razao_atividade, aes(
+    x    = razao_atividade_por_escola,
+    y    = reorder(porte, razao_atividade_por_escola),
+    fill = porte
+  )) +
+  geom_col() +
+  geom_vline(xintercept = global_razao_atividade_por_escola,
+             linetype   = "dashed",
+             size       = 0.7,
+             color      = "black") +
+  annotate("text",
+           x     = global_razao_atividade_por_escola + 0.3,
+           y     = Inf,
+           label = paste0("Média Nacional: ", round(global_razao_atividade_por_escola, 2)),
+           hjust = 0,
+           vjust = 35,
+           color = "black",
+           size  = 3.5) +
+  geom_text(aes(label = round(razao_atividade_por_escola, 2)),
+            hjust = -0.1,
+            color = "gray20",
+            size  = 3) +
+  labs(
+    title    = "Taxa de Atividades por Escola por Porte (2023-2024)",
+    subtitle = "Número médio de atividades realizadas por escola em cada porte",
+    x        = "Atividades por Escola",
+    y        = "Porte",
+    fill     = "Porte"
+  ) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.1))) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title      = element_text(face = "bold", size = 16),
+    plot.subtitle   = element_text(size = 12, color = "gray40"),
+    axis.title      = element_text(face = "bold"),
+    axis.text       = element_text(color = "gray20"),
+    legend.title    = element_text(face = "bold"),
+    legend.position = "right",
+    plot.caption    = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin     = margin(t = 5, r = 20, b = 5, l = 5)
+  )
+
+```
+
+```{r}
+df_porte_razao_atividade %>%
+  mutate(razao_atividade_por_escola = round(razao_atividade_por_escola, 2)) %>%
+  select(porte, razao_atividade_por_escola) %>%
+  kable("html", caption = "Razão de Atividades por Escola por UF (2023-2024)") %>%
+  kable_styling(full_width = FALSE)
+
+```
+
+### Educandos por atividade
+```{r, fig.width=10}
+df_porte_razao_educandos <- df_final %>%
+  drop_na(razao_educando_atividade) %>%
+  group_by(porte) %>%
+  summarise(
+    total_educandos = sum(educandos, na.rm = TRUE),
+    total_atividade = sum(total_atividade, na.rm = TRUE),
+    .groups         = "drop"
+  ) %>%
+  mutate(razao_educando_atividade = total_educandos / total_atividade) %>%
+  arrange(desc(razao_educando_atividade))
+
+ggplot(df_porte_razao_educandos, aes(
+    x    = razao_educando_atividade,
+    y    = reorder(porte, razao_educando_atividade),
+    fill = porte
+  )) +
+  geom_col() +
+  geom_vline(xintercept = global_razao_educando_atividade,
+             linetype   = "dashed",
+             size       = 0.7,
+             color      = "black") +
+  annotate("text",
+           x     = global_razao_educando_atividade + 0.3,
+           y     = Inf,
+           label = paste0("Média Nacional: ", round(global_razao_educando_atividade, 2)),
+           hjust = 0,
+           vjust = 35,
+           color = "black",
+           size  = 3.5) +
+  geom_text(aes(label = round(razao_educando_atividade, 2)),
+            hjust = -0.1,
+            color = "gray20",
+            size  = 3) +
+  labs(
+    title    = "Taxa de Educandos por Atividade por porte (2023-2024)",
+    subtitle = "Número médio de educandos atendidos por atividade em cada porte",
+    x        = "Educandos por Atividade",
+    y        = "Porte",
+    fill     = "Porte"
+  ) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.1))) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title      = element_text(face = "bold", size = 16),
+    plot.subtitle   = element_text(size = 12, color = "gray40"),
+    axis.title      = element_text(face = "bold"),
+    axis.text       = element_text(color = "gray20"),
+    legend.title    = element_text(face = "bold"),
+    legend.position = "right",
+    plot.caption    = element_text(size = 8, hjust = 1, color = "gray60"),
+    plot.margin     = margin(t = 5, r = 20, b = 5, l = 5)
+  )
+
+```
+```{r}
+df_porte_razao_educandos %>%
+  mutate(razao_educando_atividade = round(razao_educando_atividade, 2)) %>%
+  select(porte, razao_educando_atividade) %>%
+  kable("html", caption = "Razão de Educandos por Atividade por UF (2023-2024)") %>%
+  kable_styling(full_width = FALSE)
+
+```
+
+
+```{r}
+# Boxplot do indicador total por porte
+ggplot(df_final, aes(x = porte, y = razao_atividades_por_escola)) +
+  geom_boxplot(fill = "#FF6F61", color = "black") +
+  labs(
+    title    = "Distribuição do Indicador Numero de Atividades por Quantidade de Escola por Porte do Município (2023)",
+    x        = "Porte do Município",
+    y        = "Taxa de Atividades por Quantidade Escola "
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 16),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60")
+  )
+```
+
+
+```{r}
+# Boxplot do indicador total por porte
+ggplot(df_final, aes(x = porte, y = razao_educando_atividade)) +
+  geom_boxplot(fill = "#FF6F61", color = "black") +
+  labs(
+    title    = "Distribuição do Indicador Numero de Educandos por Atividades por Porte do Município (2023)",
+    x        = "Porte do Município",
+    y        = "Taxa de Educandos por Atividade "
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 16),
+    axis.title    = element_text(face = "bold"),
+    axis.text     = element_text(color = "gray20"),
+    plot.caption  = element_text(size = 8, hjust = 1, color = "gray60")
+  )
+```
 
