@@ -47,6 +47,6 @@ mun <- temas %>%
 
 
 # Usando openxlsx para salvar em excel
-write.xlsx(mun, file = "labest_2025/relatorio/relatorio_ubs/taxas_temas_municipio.xlsx", sheetName = "mun", rowNames = FALSE)
+write.xlsx(mun, file = "labest_2025/relatorio/relatorio_ubs/taxas_temas_municipio_dash.xlsx", sheetName = "mun", rowNames = FALSE)
 
 
