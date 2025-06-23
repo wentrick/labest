@@ -1,4 +1,4 @@
-pacman::p_load(tidyverse,readxl,ggplot2,scales,janitor)
+pacman::p_load(tidyverse,readxl,ggplot2,scales,janitor,openxlsx)
 
 # 0) Carregar pacotes
 library(readxl)
@@ -103,4 +103,7 @@ df_final <- pop_clean %>%
   )
 
 # E voilà — agora a coluna `uf` vem preenchida a partir do seu data frame de atividades.
+
+# Usando openxlsx para salvar em excel
+write.xlsx(mun, file = "labest_2025/relatorio/relatorio_ubs/taxas_atividades_municipio_dash.xlsx", sheetName = "mun", rowNames = FALSE)
 

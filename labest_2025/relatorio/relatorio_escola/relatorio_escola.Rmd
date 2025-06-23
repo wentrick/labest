@@ -27,6 +27,7 @@ O tratamento dos dados foi feito em outro codigo para que fique mais organizado
 
 ```{r}
 df_final = taxas_atividades_municipio <- read_excel("taxas_atividades_municipio.xlsx")
+glimpse(df_final)
 ```
 
 
